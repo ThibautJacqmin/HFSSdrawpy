@@ -989,7 +989,72 @@ class KeyElt(Circuit):
             self.draw(self.name+'_line', points, closed=False)
 
         self.ports[self.name] = portOut
+    
+    def draw_junction_litho(self, Pad_size, Pad_spacing, Connector_width, JJ_width, JJ_spacing):
+        '''
+        Draws a Josephson junction with no boundary conditions, to use when wanting 
+        to generate the design to write on e-beam lithography.
+        
+        Input : 
+            - Pad_size, vector giving the size of the 2 pads around the junction
+            - Pad_spacing, distance between 2 pads
+            - JJ_width, size of the 2 fingers of the josephson junction, same for 2 pads giving a square junction
+            - JJ_spacing, size of the bridge, to adjust depending on the angle at which the evaporation is performed
+        ........
+        
+        '''
+        
+        Pad_size, Pad_spacing, Connector_width, JJ_width, JJ_spacing = parse_entry((Pad_size, Pad_spacing, Connector_width, JJ_width, JJ_spacing))
+        Pad_size = Vector(Pad_size)
+        
+        if self.is_litho:
+        
+            self.draw_rect(self.name+'_left_pad', self.coor([-Pad_spacing/2, -Pad_size[1]/2]), self.coor_vec([-Pad_size[0],Pad_size[1]]))
+            self.draw_rect(self.name+'_right_pad', self.coor([Pad_spacing/2, Pad_size[1]/2]), self.coor_vec([Pad_size[0],-Pad_size[1]]))
+            
+            self.draw_rect(self.name+'_left_connector', self.coor([-JJ_width/2, -Pad_size[1]/4 - Connector_width/2]), self.coor_vec([-Pad_spacing/2 + JJ_width/2 - Pad_size[0]/2, Connector_width]))
+            self.draw_rect(self.name+'_right_connector', self.coor([Pad_spacing/2 + Pad_size[0]/2, JJ_spacing/2 - (Connector_width - JJ_width)/2]), self.coor_vec([-(Pad_spacing + JJ_width)/4 - Pad_size[0]/2, Connector_width]))
+            
+            self.draw_rect(self.name+'_left_JJ', self.coor([JJ_width/2, -Pad_size[1]/4 - Connector_width/2]), self.coor_vec([-JJ_width, Pad_size[1]/4 + Connector_width/2 - JJ_spacing/2]))
+            self.draw_rect(self.name+'_right_JJ', self.coor([-JJ_width/2 - 2*JJ_width, JJ_spacing/2]), self.coor_vec([(Pad_spacing + JJ_width)/4 + 2*JJ_width, JJ_width]))
+            
 
+    def draw_2_jct_loop_litho(self, Pad_width, Pad_spacing, Loop_width, Loop_length, Connector_width, JJ_width, JJ_spacing):
+        '''
+        Draws a Josephson junction with no boundary conditions, to use when wanting 
+        to generate the design to write on e-beam lithography.
+        
+        Input : 
+            - Pad_width, size of the connecting pads, square pads here
+            - Pad_spacing, distance between the pads 
+            - Loop_width & Loop_length, dimension of the loop in the design 
+            - Connector_width, width of the lines connecting the junctions to the pads
+            - JJ_width, size of the 2 fingers of the josephson junction, same for 2 pads giving a square junction
+            - JJ_spacing, size of the bridge, to adjust depending on the angle at which the evaporation is performed
+        ........
+        
+        '''
+        
+        Pad_width, Pad_spacing, Loop_width, Loop_length, Connector_width, JJ_width, JJ_spacing = parse_entry((Pad_width, Pad_spacing, Loop_width, Loop_length, Connector_width, JJ_width, JJ_spacing))
+  
+        d = Loop_length - JJ_spacing
+        if self.is_litho:
+        
+            self.draw_rect(self.name+'_left_pad', self.coor([-Pad_spacing/2 + Pad_width, -Pad_width/2]), self.coor_vec([-Pad_width, Pad_width]))
+            self.draw_rect(self.name+'_right_pad_1', self.coor([Pad_spacing/2 - Pad_width, Pad_width + Loop_width/2]), self.coor_vec([Pad_width,-Pad_width]))
+            self.draw_rect(self.name+'_right_pad_2', self.coor([Pad_spacing/2 - Pad_width, -Pad_width - Loop_width/2]), self.coor_vec([Pad_width,Pad_width]))
+            
+            self.draw_rect(self.name+'_left_connector', self.coor([-Pad_spacing/2 + Pad_width/2, -Connector_width/2]), self.coor_vec([Pad_spacing - 2*Pad_width + Pad_width/2- Loop_length, Connector_width]))
+            self.draw_rect(self.name+'_right_connector_1', self.coor([Pad_spacing/2 - Pad_width/2, Pad_width/2 + Loop_width/2 + Connector_width/2]), self.coor_vec([-(d/2 - JJ_width) - Pad_width/2, -Connector_width]))
+            self.draw_rect(self.name+'_right_connector_2', self.coor([Pad_spacing/2 - Pad_width/2, -Pad_width/2 - Loop_width/2 - Connector_width/2]), self.coor_vec([-(d/2 - JJ_width) - Pad_width/2, Connector_width]))
+            
+            self.draw_rect(self.name+'_left_connector_2', self.coor([Pad_spacing/2 - Pad_width - Loop_length - Connector_width/2, Loop_width/2 + JJ_width/2]), self.coor_vec([Connector_width, -Loop_width - JJ_width]))
+            
+            self.draw_rect(self.name+'_left_junction_1', self.coor([Pad_spacing/2 - Pad_width -(d/2 - JJ_width), Loop_width/2 + Pad_width/2 + Connector_width/2]), self.coor_vec([-JJ_width, -Connector_width/2 - Pad_width/2 - JJ_width/2 - 2*JJ_width]))
+            self.draw_rect(self.name+'_left_junction_2', self.coor([Pad_spacing/2 - Pad_width -(d/2 - JJ_width), -Loop_width/2 - Pad_width/2 - Connector_width/2]), self.coor_vec([-JJ_width, Connector_width/2 + Pad_width/2 + JJ_width/2 + 2*JJ_width]))
+            self.draw_rect(self.name+'_right_junction_1', self.coor([Pad_spacing/2 - Pad_width -d/2 - JJ_spacing, Loop_width/2 + JJ_width/2]), self.coor_vec([d/2 - Loop_length + JJ_spacing + Connector_width/2, -JJ_width]))
+            self.draw_rect(self.name+'_right_junction_2', self.coor([Pad_spacing/2 - Pad_width -d/2 - JJ_spacing, -Loop_width/2 - JJ_width/2]), self.coor_vec([d/2 - Loop_length + JJ_spacing + Connector_width/2, JJ_width]))
+#            
 
     def draw_JJ(self, iTrack, iGap, iTrackJ, iLength, iInduct='1nH', fillet=None):
         '''
@@ -1471,6 +1536,8 @@ class KeyElt(Circuit):
         
                       |   left    |   right   |
         '''
+        # Modification of the previous design in order to have a bigger gap between the ports 
+        # of the JJ junction while still having thin ports
         
         parsed = parse_entry((track, gap, left, right, down, up_left, dn_left, 
                               up_right, dn_right, Jwidth, Jinduc))
@@ -1542,6 +1609,118 @@ class KeyElt(Circuit):
             mask_size = [left + right + track + 2*gap + 2*self.gap_mask,
                          max(dn_left, down, dn_right) + max(up_left, up_right)
                          + 2*gap + 2*self.gap_mask]
+            mask = self.draw_rect_center(self.name+"_mask", self.coor(mask_center), 
+                                         self.coor_vec(mask_size))
+            self.maskObjects.append(mask)
+            
+    def draw_pHmon_modified(self, track, gap, JJgap, left, right, down, up_left, dn_left, 
+                              up_right, dn_right, Jwidth, Loop_width, Jinduc):
+        '''
+                 gap track
+                  | |   |
+                   _______                 _______
+                _ |  ___  |               |  ___  | _
+                  | |   | |_______________| |   | |
+         up_left  | |   |___________________|   | |  up_right
+                _ | |                           | | _          _
+                  | |    _______     _______    | |              
+         dn_left  | |   |  ___  |___|  ___  |   | |  dn_right  _ down
+                _ | |___| |   |___J___|   | |___| | _
+                  |_______|               |_______|
+        
+                      |   left    |   right   |
+        '''
+        
+        parsed = parse_entry((track, gap, JJgap, left, right, down, up_left, dn_left, 
+                              up_right, dn_right, Jwidth, Loop_width, Jinduc))
+        (track, gap, JJgap, left, right, down, up_left, dn_left, 
+         up_right, dn_right, Jwidth, Loop_width, Jinduc) = parsed
+       
+        # Function to calculate track and gap points at once
+        def add_pt(trackObj, gapObj, gap, vec, curvature, direction):
+            if vec == (0,0):
+                return
+            sgn = [curvature * d for d in direction]
+            trackObj.append(tuple([vec[i] + sgn[i] * 2 * self.overdev 
+                                   for i in range(2)]))
+            gapObj.append(tuple([vec[i] + sgn[i] * 2 * (gap - self.overdev) 
+                                 for i in range(2)]))
+
+        # Capacitance and ground planes of the transmon
+        capa   = [(track/2 + self.overdev, - track/2 - self.overdev)]
+        ground = [(track/2 + gap - self.overdev, - track/2 - gap + self.overdev)] 
+        add_pt(capa, ground, gap, (right - track, 0), -1, [1, 0])
+        add_pt(capa, ground, gap, (0, track/2 - dn_right), 0, [0, -1])
+        add_pt(capa, ground, gap, (track, 0), 1, [1, 0])
+        add_pt(capa, ground, gap, (0, dn_right + up_right), 1, [0, 1])
+        add_pt(capa, ground, gap, (-track, 0), 1, [-1, 0])
+        add_pt(capa, ground, gap, (0, track/2 - up_right), 0, [0, -1])
+        add_pt(capa, ground, gap, (track - left - right, 0), -1, [-1, 0])
+        add_pt(capa, ground, gap, (0, up_left - track/2), 0, [0, 1])
+        add_pt(capa, ground, gap, (-track, 0), 1, [-1, 0])
+        add_pt(capa, ground, gap, (0, -up_left - dn_left), 1, [0, -1])
+        add_pt(capa, ground, gap, (track, 0), 1, [1, 0])
+        add_pt(capa, ground, gap, (0, dn_left - track/2), 0, [0, 1])
+        add_pt(capa, ground, gap, (left - track, 0), -1, [1, 0])
+        add_pt(capa, ground, 0.5*(JJgap-gap), (0, track/2 - down), 1, [0, -1])
+        if self.is_litho:
+            add_pt(capa, [], gap, (track/2- Jwidth/2, 0), 1, [0, -1])
+            add_pt(capa, [], gap, (0, -Jwidth), 1, [0, -1])
+            add_pt(capa, [], gap, (Jwidth, 0), 1, [0, -1])
+            add_pt(capa, [], gap, (0,Jwidth), 1, [0, -1])
+            add_pt(capa, [], gap, (track/2- Jwidth/2, 0), 1, [0, -1])
+            
+            add_pt([], ground, 0, (gap + track/2 - Jwidth - Loop_width/2, 0), 1, [0, -1])
+            add_pt([], ground, 0, (0, Jwidth), 1, [0, -1])
+            add_pt([], ground, 0, (Jwidth, 0), 1, [0, -1])
+            add_pt([], ground, 0, (0,-Jwidth), 1, [0, -1])
+            add_pt([], ground, 0, (Loop_width, 0), 1, [0, -1])
+            add_pt([], ground, 0, (0, Jwidth), 1, [0, -1])
+            add_pt([], ground, 0, (Jwidth, 0), 1, [0, -1])
+            add_pt([], ground, 0, (0,-Jwidth), 1, [0, -1])
+            add_pt([], ground, 0, (gap + track/2 - Jwidth - Loop_width/2, 0), 1, [0, -1])
+        else:
+            add_pt(capa, ground, gap, (track, 0), 1, [1, 0])
+        
+        # Draw the capa and ground
+        capa   = self.append_points(capa)
+        capa   = self.draw(self.name+"_capa", capa)
+        ground = self.append_points(ground)
+        ground = self.draw(self.name+"_ground", ground)   
+        
+        if not self.is_litho:
+        
+            # Ports of the JJ        
+            junction_cap = [self.coor([0, -down - self.overdev]), 
+                            self.coor_vec([0, 1]), Jwidth + 2 * self.overdev, 0]
+            junction_gnd = [self.coor([0, -down - JJgap + self.overdev]), 
+                            self.coor_vec([0,-1]), Jwidth + 2 * self.overdev, 0]
+        
+            self.ports[self.name+'_jct_cap'] = junction_cap
+            self.ports[self.name+'_jct_gnd'] = junction_gnd
+            
+            # Draw the JJ
+            junction = self.connect_elt(self.name+'_junction', 
+                                        self.name+'_jct_cap', self.name+'_jct_gnd')
+            junction_pads = junction._connect_JJ(Jwidth + 2 * self.overdev, 
+                                                 iInduct=Jinduc, fillet=None)
+            
+            self.trackObjects.append(junction_pads)
+        
+        # Set Drawpy objects
+        
+        self.trackObjects.append(capa)      
+        self.gapObjects.append(ground) 
+        
+        if not self.is_litho:
+            self.modeler.assign_mesh_length(capa, track)
+    
+        if self.is_mask:
+            mask_center = [(right - left) / 2, max(up_left+gap, up_right+gap)/2 -
+                                               max(dn_left+gap, down+JJgap, dn_right+gap)/2]
+            mask_size = [left + right + track + 2*gap + 2*self.gap_mask,
+                         max(dn_left, down, dn_right) + max(up_left, up_right)
+                         + 2*max(gap + JJgap) + 2*self.gap_mask]
             mask = self.draw_rect_center(self.name+"_mask", self.coor(mask_center), 
                                          self.coor_vec(mask_size))
             self.maskObjects.append(mask)
@@ -1626,6 +1805,113 @@ class KeyElt(Circuit):
         capa = self.unite([capa_l, capa_r], name=self.name+'_capa')
         self.trackObjects.append(capa)
         self.trackObjects.append(junction_pads)
+        
+        self.gapObjects.append(ground) 
+        
+        if not self.is_litho:
+            self.modeler.assign_mesh_length(capa, track)
+    
+        if self.is_mask:
+            mask_center = [(right - left) / 2, 
+                           max(up_left, up_right)/2 - max(dn_left, dn_right)/2]
+            mask_size = [left + right + track + 2*gap + 2*self.gap_mask,
+                         max(dn_left, dn_right) + max(up_left, up_right)
+                         + 2*gap + 2*self.gap_mask]
+            mask = self.draw_rect_center(self.name+"_mask", self.coor(mask_center), 
+                                         self.coor_vec(mask_size))
+            self.maskObjects.append(mask)
+            
+    def draw_sHmon_modified(self, pad_spacing, track, gap, left, right,
+                   up_left, dn_left, up_right, dn_right, Jwidth, Jinduc):
+        '''
+                 gap track
+                  | |   |
+                   _______                 _______
+                _ |  ___  |               |  ___  | _
+                  | |   | |_______________| |   | |
+         up_left  | |   |_______     _______|   | |  up_right
+                _ | |           |_J_|           | | _
+                  | |    _______|   |_______    | |              
+         dn_left  | |   |  _______________  |   | |  dn_right
+                _ | |___| |               | |___| | _
+                  |_______|               |_______|
+        
+                      |   left    |   right   |
+        '''
+        
+        parsed = parse_entry((pad_spacing, track, gap, left, right, up_left, dn_left, 
+                              up_right, dn_right, Jwidth, Jinduc))
+        (pad_spacing, track, gap, left, right, up_left, dn_left, 
+         up_right, dn_right, Jwidth, Jinduc) = parsed
+       
+        # Function to calculate track and gap points at once
+        def add_pt(trackObj, gapObj, vec, curvature, direction):
+            if vec == (0,0):
+                return
+            sgn = [curvature * d for d in direction]
+            trackObj.append(tuple([vec[i] + sgn[i] * 2 * self.overdev 
+                                   for i in range(2)]))
+            gapObj.append(tuple([vec[i] + sgn[i] * 2 * (gap - self.overdev) 
+                                 for i in range(2)]))
+
+        # Capacitance and ground planes of the transmon
+        capa_l = [(-pad_spacing/2 + self.overdev, track/2 + self.overdev)]
+        capa_r = [(pad_spacing/2 - self.overdev, - track/2 - self.overdev)]
+        ground = [(right - track/2 - gap + self.overdev, - track/2 - gap + self.overdev)] 
+        add_pt(capa_r, [],     (right - track/2 - pad_spacing/2, 0), 0, [1, 0])
+        add_pt(capa_r, ground, (0, track/2 - dn_right), 0, [0, -1])
+        add_pt(capa_r, ground, (track, 0), 1, [1, 0])
+        add_pt(capa_r, ground, (0, dn_right + up_right), 1, [0, 1])
+        add_pt(capa_r, ground, (-track, 0), 1, [-1, 0])
+        add_pt(capa_r, ground, (0, track/2 - up_right), 0, [0, -1])
+        add_pt(capa_r, [],     (track/2 + pad_spacing/2 - right, 0), 0, [-1, 0])
+        if self.is_litho:
+            add_pt(capa_r, [], (0, -track/2 + Jwidth/2), 0, [-1, 0])
+            add_pt(capa_r, [], (-Jwidth, 0), 0, [-1, 0])
+            add_pt(capa_r, [], (0, -Jwidth), 0, [-1, 0])
+            add_pt(capa_r, [], (Jwidth, 0), 0, [-1, 0])
+        add_pt(capa_l, [],     (track/2 + pad_spacing/2 - left, 0), 0, [-1, 0])
+        add_pt([], ground,     (track - left - right, 0), -1, [-1, 0])
+        add_pt(capa_l, ground, (0, up_left - track/2), 0, [0, 1])
+        add_pt(capa_l, ground, (-track, 0), 1, [-1, 0])
+        add_pt(capa_l, ground, (0, -up_left - dn_left), 1, [0, -1])
+        add_pt(capa_l, ground, (track, 0), 1, [1, 0])
+        add_pt(capa_l, ground, (0, dn_left - track/2), 0, [0, 1])
+        add_pt(capa_l, [],     (left - track/2 - pad_spacing/2, 0), 0, [1, 0])
+        if self.is_litho:
+            add_pt(capa_l, [], (0, track/2 - Jwidth/2), 0, [-1, 0])
+            add_pt(capa_l, [], (Jwidth, 0), 0, [-1, 0])
+            add_pt(capa_l, [], (0, Jwidth), 0, [-1, 0])
+            add_pt(capa_l, [], (-Jwidth, 0), 0, [-1, 0])
+            
+        # Draw the capa and ground
+        capa_l = self.append_points(capa_l)
+        capa_l   = self.draw(self.name+"_capa_left",  capa_l)
+        capa_r = self.append_points(capa_r)
+        capa_r   = self.draw(self.name+"_capa_right", capa_r)
+        ground = self.append_points(ground)
+        ground = self.draw(self.name+"_ground", ground)   
+        
+        if not self.is_litho:
+            # Ports of the JJ
+            junction_l = [self.coor([0, -pad_spacing/2 + self.overdev]), 
+                          self.coor_vec([-1,0]), Jwidth + 2 * self.overdev, 0]
+            junction_r = [self.coor([0, pad_spacing/2 - self.overdev]), 
+                          self.coor_vec([1,0]), Jwidth + 2 * self.overdev, 0]
+            self.ports[self.name+'_jct_left']  = junction_l
+            self.ports[self.name+'_jct_right'] = junction_r
+            
+            # Draw the JJ
+            junction = self.connect_elt(self.name+'_junction', 
+                                        self.name+'_jct_left', self.name+'_jct_right')
+            junction_pads = junction._connect_JJ(Jwidth + 2 * self.overdev, 
+                                                 iInduct=Jinduc, fillet=None)
+            
+            self.trackObjects.append(junction_pads)
+            
+        # Set Drawpy objects
+        capa = self.unite([capa_l, capa_r], name=self.name+'_capa')
+        self.trackObjects.append(capa)
         
         self.gapObjects.append(ground) 
         
@@ -3173,6 +3459,57 @@ class KeyElt(Circuit):
         self.ports[self.name+'_2'] = portOut2
         portOut3 = [self.coor([0, -(iTrack/2+iGap)]), self.coor_vec([0,-1]), iTrack+2*self.overdev, iGap-2*self.overdev]
         self.ports[self.name+'_3'] = portOut3
+        
+    def draw_cross(self, iTrack, iGap, is_fillet=False):
+        
+        if not self.is_overdev or self.val(self.overdev<0):
+            cutout = self.draw_rect_center(self.name+'_cutout', self.coor([0,self.overdev/2]), self.coor_vec([2*iGap+iTrack, 2*iGap+iTrack-self.overdev]))
+            self.gapObjects.append(cutout)
+        else:
+            points = self.append_points([(-(iGap+iTrack/2),-iTrack/2-iGap+self.overdev),
+                             (0, 2*iGap+iTrack-2*self.overdev),
+                             ((iGap+iTrack/2)*2, 0),
+                             (0, -(2*iGap+iTrack)+2*self.overdev),
+                             (-self.overdev, 0),
+                             (0, -self.overdev), 
+                             (-iTrack-2*iGap+2*self.overdev, 0),
+                             (0, self.overdev)])
+            cutout = self.draw(self.name+'_cutout', points)
+            self.gapObjects.append(cutout)
+        
+        if self.is_mask:
+            mask = self.draw_rect(self.name+'_mask', self.coor([-iGap-iTrack/2,-iGap-iTrack/2]), self.coor_vec([2*iGap+iTrack, 2*iGap+iTrack+self.gap_mask]))
+            self.maskObjects.append(mask)
+            
+        points = self.append_points([(-(iGap+iTrack/2),-iTrack/2-self.overdev),
+                                     (0, iTrack+2*self.overdev),
+                                     (iGap, 0), (0, iGap), (iTrack, 0),
+                                     (0, -iGap), (iGap, 0),
+                                     (0, -iTrack-2*self.overdev),
+                                     (-iGap+self.overdev, 0),
+                                     (0, -iGap+self.overdev), 
+                                     (-iTrack-2*self.overdev, 0),
+                                     (0, iGap-self.overdev)])
+        track = self.draw(self.name+'_track', points)
+
+        if is_fillet:
+	        if self.val(iGap)<self.val(iTrack):
+	            fillet=iGap
+	        else:
+	            fillet=iTrack
+	        track.fillet(fillet-eps,[4,7])
+        
+        self.trackObjects.append(track)
+        
+        portOut1 = [self.coor([iTrack/2+iGap, 0]), self.coor_vec([1,0]), iTrack+2*self.overdev, iGap-2*self.overdev]
+        self.ports[self.name+'_1'] = portOut1
+        portOut2 = [self.coor([-(iTrack/2+iGap), 0]), self.coor_vec([-1,0]), iTrack+2*self.overdev, iGap-2*self.overdev]
+        self.ports[self.name+'_2'] = portOut2
+        portOut3 = [self.coor([0, -(iTrack/2+iGap)]), self.coor_vec([0,-1]), iTrack+2*self.overdev, iGap-2*self.overdev]
+        self.ports[self.name+'_3'] = portOut3
+        portOut4 = [self.coor([0, iTrack/2+iGap]), self.coor_vec([0,1]), iTrack+2*self.overdev, iGap-2*self.overdev]
+        self.ports[self.name+'_4'] = portOut4
+
 
 
     def draw_inductance(self, iTrack, iGap, all_length, ind_length, mode='litho', L_eq = '1nH'): #for now assume left and right tracks are the same width
@@ -3919,8 +4256,8 @@ class KeyElt(Circuit):
         pts = self.append_points(pts)
         self.draw(self.name+'_dn_line', pts, closed=False)
         
-        self.modeler.assign_mesh_length(resistance_up, iGap/ratio/10)
-        self.modeler.assign_mesh_length(resistance_dn, iGap/ratio/10)
+        self.modeler.assign_mesh_length(resistance_up, iGap/ratio/3)
+        self.modeler.assign_mesh_length(resistance_dn, iGap/ratio/3)
         self.modeler.assign_mesh_length(track, iGap/ratio)
 
     def draw_alignement_mark(self, iSize, iXdist, iYdist):
