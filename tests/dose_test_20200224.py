@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jan 21 09:54:09 2020
-
-@author: wcs
-"""
-
 '''
 Third dose test for more oxidation and cross junctions
     First dose test had collapsed bridges on the small junctions
