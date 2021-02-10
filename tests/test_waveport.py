@@ -30,36 +30,24 @@ MSL_length = pm.set_variable('1mm')
 width = pm.set_variable('3mm')
 
 # define substrate + MSL + GND
-chip_subs = chip_body.box([-width/2, 0, -sub_h],
-                [width, MSL_length, sub_h],
-                name="chip_subs")
+chip_subs = chip_body.box([-width / 2, 0, -sub_h], [width, MSL_length, sub_h], name="chip_subs")
 chip_subs.assign_material("sapphire")
 
-MSL = chip_body.rect([-track/2, 0, 0],
-           [track, MSL_length, 0], 
-           name="MSL")
+MSL = chip_body.rect([-track / 2, 0, 0], [track, MSL_length, 0], name="MSL")
 MSL.assign_perfect_E('_perfE')
 
-GND = chip_body.rect([-width/2, 0, -sub_h],
-           [width, MSL_length, 0], 
-           name="GND")
+GND = chip_body.rect([-width / 2, 0, -sub_h], [width, MSL_length, 0], name="GND")
 GND.assign_perfect_E('_perfE')
 
 # define vacuum
-cover = chip_body.box([-width/2, 0, 0],
-                [width, MSL_length, cover_H],
-                name="air_top")
+cover = chip_body.box([-width / 2, 0, 0], [width, MSL_length, cover_H], name="air_top")
 cover.assign_material("vacuum")
 
 # define ports
-port1 = chip_body.rect([-width/2, 0, -sub_h], 
-              [width, 0, cover_H+sub_h],
-              name="1")
+port1 = chip_body.rect([-width / 2, 0, -sub_h], [width, 0, cover_H + sub_h], name="1")
 port1.assign_waveport(Nmodes=1)
 port1.assign_terminal_auto(GND)
 
-port2 = chip_body.rect([-width/2, MSL_length, -sub_h], 
-              [width, 0, cover_H+sub_h],
-              name="2")
+port2 = chip_body.rect([-width / 2, MSL_length, -sub_h], [width, 0, cover_H + sub_h], name="2")
 port2.assign_waveport(Nmodes=1)
 port2.assign_terminal_auto(GND)

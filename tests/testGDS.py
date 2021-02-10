@@ -27,8 +27,14 @@ if 1:
     # Path created with automatic bends of radius 5
     points = [[0, 0], [0, 10], [10, 10], [10, 20]]
     cable = gdspy.FlexPath(
-        points, [1, 2, 1], offset=[-1, 3, 2], corners="circular bend", bend_radius=[5, 5], gdsii_path=False,
-        layer=[0, 0, 0])
+        points,
+        [1, 2, 1],
+        offset=[-1, 3, 2],
+        corners="circular bend",
+        bend_radius=[5, 5],
+        gdsii_path=False,
+        layer=[0, 0, 0],
+    )
 
     # Same path, generated with natural corners, for comparison
     # sp5 = gdspy.FlexPath(points, 1, layer=1, gdsii_path=True)
@@ -56,10 +62,10 @@ display = 0
 if display:
     gdspy.LayoutViewer()
 else:
-    cwd  = os.getcwd()
+    cwd = os.getcwd()
     gdspy.write_gds(os.path.join(cwd, 'test_path.gds'), unit=1.0e-6, precision=1e-8)
 
-#print(polySet.polygons[0])
+# print(polySet.polygons[0])
 
 #%%
 
