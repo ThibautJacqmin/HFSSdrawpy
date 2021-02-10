@@ -1,5 +1,7 @@
 # HFSSdrawpy
 
+:warning: This branch is not stable yet, refactoring in progress...
+
 This package allows to draw circuits in HFSS using Python. It also directly generates GDS files.
 
 [Source Code](https://github.com/QuanticParis/HFSSdrawpy/)
