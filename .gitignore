@@ -16,3 +16,6 @@ dist/
 
 # GDS specific
 *.gds
+
+# pyenv specific
+.python-version
