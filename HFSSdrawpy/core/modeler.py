@@ -55,6 +55,9 @@ class Modeler():
         elif mode=="gds":
             from ..interfaces import gds_modeler
             self.interface = gds_modeler.GdsModeler()
+        elif mode=="comsol":
+            from ..interfaces import comsol_modeler
+            self.interface = comsol_modeler.ComsolModeler()
         else:
             print('Mode should be either hfss or gds')
 
@@ -83,6 +86,22 @@ class Modeler():
 
         if self.mode == 'hfss':
             self.design.set_variable(name, value)  # for HFSS
+
+        if self.mode == 'comsol':
+
+            def hfss_to_comsol(v):
+                # Transforms '25pm' into '25[pm]'
+                numerics = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', 'e', '+', '-']
+                for i, c in enumerate(str(v)):
+                    if c not in numerics:
+                        break
+                return '{}[{}]'.format(v[:i], v[i:])
+
+            if isinstance(value, str):
+                self.interface.set_variable(name, hfss_to_comsol(value))
+            else:
+                self.interface.set_variable(name, value)
+
         symbol = sympy.symbols(name)
         store_variable(symbol, value)
         return symbol
