@@ -1,4 +1,11 @@
-import numpy as np
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb  9 16:04:58 2021
+
+@author: Alexandre
+"""
+
+
 import ntpath
 import __main__
 import mph
@@ -20,9 +27,15 @@ class ComsolModeler(object):
         self.main_comp = self.model.component().create("main_comp", True)
         self.main_comp.geom().create("main_geom", 3)
         self.main_geom = self.model.component("main_comp").geom("main_geom")
+        self.main_wp = self.main_geom.create("main_wp", "WorkPlane")
         self.main_comp.mesh().create("main_mesh")
-        self. emw_physics = self.main_comp.physics().create("emw", "ElectromagneticWaves", "emw_geom")
+        self.emw_physics = self.main_comp.physics().create("emw", "ElectromagneticWaves", "emw_geom")
         self.pec = self.emw_physics.create("pec", "PerfectElectricConductor", 2)
+        self.pec_sel = self.main_wp.geom().selection().create("pec_sel", "CumulativeSelection")
+        self.main_wp.set("selplaneshow", "on")
+        self.pec.selection().named("main_geom_main_wp_pec_sel_bnd")
+
+        self.model.param().group().create("inter_params")
 
         self.main_geom.run()
 
@@ -81,7 +94,6 @@ class ComsolModeler(object):
             raise Exception('Rectangles outside of main workplane not implemented yet in Comsol mode')
 
         rectangle_name = kwargs["name"]
-        workplane_name = "wp_{}".format(rectangle_name)
 
         if self.model.param().evaluate(str(size[w_idx])) < 0:
             width = "-(" + str(size[w_idx]) + ")"
@@ -97,19 +109,29 @@ class ComsolModeler(object):
             height = str(size[h_idx])
             pos_y = str(pos[h_idx])
 
-        wp = self.main_geom.create(workplane_name, "WorkPlane")
-        rect = wp.geom().create(rectangle_name, "Rectangle")
-        rect.setIndex("size", width, 0)
-        rect.setIndex("size", height, 1)
-        rect.setIndex("pos", pos_x, 0)
-        rect.setIndex("pos", pos_y, 1)
+        rect = self.main_wp.geom().create(rectangle_name, "Rectangle")
+        self.model.param("inter_params").set("{}_width".format(rectangle_name), str(width))
+        self.model.param("inter_params").set("{}_height".format(rectangle_name), str(height))
+        self.model.param("inter_params").set("{}_pos_x".format(rectangle_name), str(pos_x))
+        self.model.param("inter_params").set("{}_pos_y".format(rectangle_name), str(pos_y))
+        rect.setIndex("size", "{}_width".format(rectangle_name), 0)
+        rect.setIndex("size", "{}_height".format(rectangle_name), 1)
+        rect.setIndex("pos", "{}_pos_x".format(rectangle_name), 0)
+        rect.setIndex("pos", "{}_pos_y".format(rectangle_name), 1)
 
-        self.main_geom.run()
+        #self.main_geom.run()
 
         print('Rectangle {} created'.format(rectangle_name))
 
         return rectangle_name
 
+    @assert_name
+    def rect_center(self, pos, size, **kwargs):
+        pos = parse_entry(pos)
+        size = parse_entry(size)
+        corner_pos = [val(p) - val(s)/2 for p, s in zip(pos, size)]
+        name = self.rect(corner_pos, size, **kwargs)
+        return name
 
     @assert_name
     def polyline(self, points, closed=True, **kwargs):
@@ -126,17 +148,15 @@ class ComsolModeler(object):
         pol.set("source", "table")
 
         if closed:
-            pol.set("type", "closed")
+            pol.set("type", "solid")
         else:
             pol.set("type", "open")
 
         for ii, point in enumerate(points):
-            if point[3] != 0:
-                raise Exception("Polygons outside of main workplane not implemented yet in Comsol mode")
-            pol.setIndex("table", point[0], ii, 0)
-            pol.setIndex("table", point[1], ii, 1)
+            pol.setIndex("table", str(point[0]), ii, 0)
+            pol.setIndex("table", str(point[1]), ii, 1)
 
-        self.main_geom.run()
+        #self.main_geom.run()
 
         print('Polygon {} created'.format(polygon_name))
 
@@ -144,18 +164,17 @@ class ComsolModeler(object):
 
 
     def assign_perfect_E(self, entities, name):
+        pass
+
         if not isinstance(entities, list):
             entities = [entities]
         entity_names = [entity.name for entity in entities]
 
         for name in entity_names:
-            wp_name = "wp_{}".format(name)
-            sel_name = "sel_{}".format(name)
-            sel = self.main_geom.create(sel_name, "ExplicitSelection")
-            sel.selection("selection").init(2)
-            sel.selection("selection").set(wp_name, 1)
-            self.pec.selection().named("main_geom_{}".format(sel_name))
+            self.main_wp.geom().feature(name).set("contributeto", "pec_sel")
             print('Perfect E assigned to {}'.format(name))
+
+        #self.main_geom.run()
 
 
     def rotate(self, entities, angle, center=None, *args, **kwargs):
@@ -169,17 +188,17 @@ class ComsolModeler(object):
         names = [entity.name for entity in entities]
         
         for name in names:
-            rot_name = self.new_transform_name(name)
-            wp_name = "wp_{}".format(name)
-            wp = self.main_geom.feature(wp_name)
-            rot = wp.geom().create(rot_name, "Rotate")
-            rot.set("rot", angle)
-            rot.setIndex("pos", str(center[0]), 0)
-            rot.setIndex("pos", str(center[1]), 1)
-            rot.selection("input").set(rot_name[1:])
-            self.main_geom.run()
-
-            print('{} rotated ({})'.format(name, rot_name))
+            try:
+                rot_name = self.new_transform_name(name)
+                rot = self.main_wp.geom().create(rot_name, "Rotate")
+                rot.set("rot", angle)
+                rot.setIndex("pos", str(center[0]), 0)
+                rot.setIndex("pos", str(center[1]), 1)
+                rot.selection("input").set(rot_name[1:])
+                self.main_geom.run()
+                print('{} rotated ({})'.format(name, rot_name))
+            except:
+                print('{} not translated, must have been suppressed by union'.format(name))
 
 
     def translate(self, entities, vector):
@@ -191,25 +210,89 @@ class ComsolModeler(object):
             raise Exception('Translations outside of main workplane not implemented yet in Comsol mode')
 
         for name in names:
-            trans_name = self.new_transform_name(name)
-            wp_name = "wp_{}".format(name)
-            wp = self.main_geom.feature(wp_name)
-            trans = wp.geom().create(trans_name, "Move")
-            trans.selection("input").set(trans_name[1:])
-            trans.setIndex("displ", str(vector[0]), 0)
-            trans.setIndex("displ", str(vector[1]), 1)
-            self.main_geom.run()
+            try:
+                trans_name = self.new_transform_name(name)
+                trans = self.main_wp.geom().create(trans_name, "Move")
+                trans.selection("input").set(trans_name[1:])
+                self.model.param("inter_params").set("{}_x".format(trans_name), str(vector[0]))
+                self.model.param("inter_params").set("{}_y".format(trans_name), str(vector[1]))
+                trans.setIndex("displ", "{}_x".format(trans_name), 0)
+                trans.setIndex("displ", "{}_y".format(trans_name), 1)
+                self.main_geom.run()
+                print('{} translated ({})'.format(name, trans_name))
+            except:
+                print('{} not translated, must have been suppressed by union'.format(name))
 
-            print('{} translated ({})'.format(name, trans_name))
+    def delete(self, entity):
+        object_exists = False
+        try:
+            self.main_wp.geom().feature(new_name).tag()
+            object_exists = True
+        except:
+            pass
+
+        if object_exists:
+            del_name = "del_{}".format(entity.name)
+            delete = self.main_wp.geom().create(del_name, "Delete")
+            delete.selection("input").set(entity.name)
+            #self.main_geom.run()
+            print('{} deleted'.format(entity.name))
+
+    def unite(self, entities, keep_originals=False):
+        names = [self.last_transform_name(entity.name) for entity in entities]
+        union_name = self.new_transform_name(names[0])
+        union = self.main_wp.geom().create(union_name, "Union")
+        union.set("intbnd", "off")
+        if keep_originals:
+            union.set("keep", "on")
+        union.selection("input").set(*names)
+        #self.main_geom.run()
+        return entities.pop(0)
+
+    def subtract(self, blank_entities, tool_entities, keep_originals=False):
+        blank_names = []
+        for entity in blank_entities:
+            blank_names.append(self.last_transform_name(entity.name))
+        tool_names = []
+        for entity in tool_entities:
+            tool_names.append(self.last_transform_name(entity.name))
+
+        for name in blank_names:
+            diff_name = self.new_transform_name(name)
+            diff = self.main_wp.geom().create(diff_name, "Difference")
+            diff.selection("input").set(name)
+            diff.selection("input2").set(*tool_names)
+
+
+    def fillet(self, entity, radius, vertex_indices=None):
+        if vertex_indices is not None:
+            raise Exception("Vertices selection not implemented yet")
+
+        fillet_name = "fillet_{}".format(entity.name)
+        fillet = self.main_wp.geom().create(fillet_name, "Fillet")
+        fillet.set("radius", str(radius))
+
+        ii = 1
+        while True:
+            try:
+                fillet.selection("point").add(self.last_transform_name(entity.name), ii)
+                ii+=1
+                self.main_geom.run()
+            except:
+                break
+        print("Fillet applied to {}".format(entity.name))
+        #self.main_geom.run()
+
 
 
     def new_transform_name(self, name):
-        wp_name = "wp_{}".format(name)
-        wp = self.main_geom.feature(wp_name)
         new_name = 't{}'.format(name)
         while True:
             try:
-                new_name = 't{}'.format(wp.geom().feature(new_name).tag())
+                new_name = 't{}'.format(self.main_wp.geom().feature(new_name).tag())
             except:
                 break
         return new_name
+
+    def last_transform_name(self, name):
+        return self.new_transform_name(name)[1:]
