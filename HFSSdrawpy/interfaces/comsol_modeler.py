@@ -22,7 +22,8 @@ class ComsolModeler(object):
         self.pymodel = self.client.create(ntpath.basename(__main__.__file__))
         self.model = self.pymodel.java
 
-        self.geometry_numbers = {}
+        self.suppressed_entities = []
+        self.transforms = {} #dict containing the number of transforms having been applied to a given entity
 
         self.main_comp = self.model.component().create("main_comp", True)
         self.main_comp.geom().create("main_geom", 3)
@@ -119,8 +120,6 @@ class ComsolModeler(object):
         rect.setIndex("pos", "{}_pos_x".format(rectangle_name), 0)
         rect.setIndex("pos", "{}_pos_y".format(rectangle_name), 1)
 
-        #self.main_geom.run()
-
         print('Rectangle {} created'.format(rectangle_name))
 
         return rectangle_name
@@ -156,16 +155,12 @@ class ComsolModeler(object):
             pol.setIndex("table", str(point[0]), ii, 0)
             pol.setIndex("table", str(point[1]), ii, 1)
 
-        #self.main_geom.run()
-
         print('Polygon {} created'.format(polygon_name))
 
         return polygon_name
 
 
     def assign_perfect_E(self, entities, name):
-        pass
-
         if not isinstance(entities, list):
             entities = [entities]
         entity_names = [entity.name for entity in entities]
@@ -173,9 +168,6 @@ class ComsolModeler(object):
         for name in entity_names:
             self.main_wp.geom().feature(name).set("contributeto", "pec_sel")
             print('Perfect E assigned to {}'.format(name))
-
-        #self.main_geom.run()
-
 
     def rotate(self, entities, angle, center=None, *args, **kwargs):
         '''Rotation occurs in the  plane of the object
@@ -188,17 +180,19 @@ class ComsolModeler(object):
         names = [entity.name for entity in entities]
         
         for name in names:
-            try:
+            if name in self.suppressed_entities:
+                print('{} not translated, must have been suppressed by union'.format(name))
+            else:
+                #t1 = time.perf_counter()
                 rot_name = self.new_transform_name(name)
+                #t2 = time.perf_counter()
+                #print("New rot name generation time : ", t2 - t1)
                 rot = self.main_wp.geom().create(rot_name, "Rotate")
                 rot.set("rot", angle)
                 rot.setIndex("pos", str(center[0]), 0)
                 rot.setIndex("pos", str(center[1]), 1)
-                rot.selection("input").set(rot_name[1:])
-                self.main_geom.run()
+                rot.selection("input").set(self.penultimate_transform_name(name))
                 print('{} rotated ({})'.format(name, rot_name))
-            except:
-                print('{} not translated, must have been suppressed by union'.format(name))
 
 
     def translate(self, entities, vector):
@@ -210,32 +204,26 @@ class ComsolModeler(object):
             raise Exception('Translations outside of main workplane not implemented yet in Comsol mode')
 
         for name in names:
-            try:
+            if name in self.suppressed_entities:
+                print('{} not translated, must have been suppressed by union'.format(name))
+            else:
                 trans_name = self.new_transform_name(name)
                 trans = self.main_wp.geom().create(trans_name, "Move")
-                trans.selection("input").set(trans_name[1:])
+                trans.selection("input").set(self.penultimate_transform_name(name))
                 self.model.param("inter_params").set("{}_x".format(trans_name), str(vector[0]))
                 self.model.param("inter_params").set("{}_y".format(trans_name), str(vector[1]))
                 trans.setIndex("displ", "{}_x".format(trans_name), 0)
                 trans.setIndex("displ", "{}_y".format(trans_name), 1)
-                self.main_geom.run()
                 print('{} translated ({})'.format(name, trans_name))
-            except:
-                print('{} not translated, must have been suppressed by union'.format(name))
+
 
     def delete(self, entity):
-        object_exists = False
-        try:
-            self.main_wp.geom().feature(new_name).tag()
-            object_exists = True
-        except:
-            pass
-
-        if object_exists:
+        if entity.name in self.suppressed_entities:
+            print("{} not deleted, must have been suppressed by union".format(entity.name))
+        else:
             del_name = "del_{}".format(entity.name)
             delete = self.main_wp.geom().create(del_name, "Delete")
             delete.selection("input").set(entity.name)
-            #self.main_geom.run()
             print('{} deleted'.format(entity.name))
 
     def unite(self, entities, keep_originals=False):
@@ -245,6 +233,8 @@ class ComsolModeler(object):
         union.set("intbnd", "off")
         if keep_originals:
             union.set("keep", "on")
+        else:
+            self.suppressed_entities.extend(names[1:])
         union.selection("input").set(*names)
         #self.main_geom.run()
         return entities.pop(0)
@@ -260,39 +250,94 @@ class ComsolModeler(object):
         for name in blank_names:
             diff_name = self.new_transform_name(name)
             diff = self.main_wp.geom().create(diff_name, "Difference")
+            #diff.set("keep", "on")
             diff.selection("input").set(name)
             diff.selection("input2").set(*tool_names)
+            self.suppressed_entities.extend(tool_names) #temporary solution, I don't understand how subtract works exactly in hfss
 
 
     def fillet(self, entity, radius, vertex_indices=None):
-        if vertex_indices is not None:
-            raise Exception("Vertices selection not implemented yet")
 
-        fillet_name = "fillet_{}".format(entity.name)
+        fillet_name = self.new_transform_name(entity.name)
         fillet = self.main_wp.geom().create(fillet_name, "Fillet")
         fillet.set("radius", str(radius))
 
+        if vertex_indices is None:
+            ii = 1
+            while True:
+                try:
+                    fillet.selection("point").add(self.penultimate_transform_name(entity.name), ii)
+                    ii+=1
+                    self.main_geom.run()
+                except:
+                    break
+        else:
+            pass
+
+
+    def get_vertex_ids(self, entity):
+        sel_name = self.new_transform_name("get_vertex_ids")
+        sel = self.main_wp.geom().create(sel_name, "ExplicitSelection")
+        ids = []
         ii = 1
         while True:
             try:
-                fillet.selection("point").add(self.last_transform_name(entity.name), ii)
-                ii+=1
+                sel.selection("selection").add(self.last_transform_name(entity.name), ii)
                 self.main_geom.run()
             except:
                 break
-        print("Fillet applied to {}".format(entity.name))
-        #self.main_geom.run()
+            ids.append(ii)
+            ii += 1
 
+
+        return ids
+
+    def assign_mesh_length(self, entities, length):
+        pass
+
+#######################################
+    # Transform names management
+#######################################
 
 
     def new_transform_name(self, name):
-        new_name = 't{}'.format(name)
-        while True:
-            try:
-                new_name = 't{}'.format(self.main_wp.geom().feature(new_name).tag())
-            except:
-                break
+        suffix = self.get_suffix(name)
+        if suffix in self.transforms:
+            self.transforms[suffix] += 1
+        else:
+            self.transforms[suffix] = 1
+        new_name = "t{}_{}".format(self.transforms[suffix], suffix)
+
         return new_name
 
     def last_transform_name(self, name):
-        return self.new_transform_name(name)[1:]
+        suffix = self.get_suffix(name)
+        if suffix in self.transforms:
+            last_name = "t{}_{}".format(self.transforms[suffix], suffix)
+        else:
+            last_name = suffix
+        return last_name
+
+    def penultimate_transform_name(self, name):
+        suffix = self.get_suffix(name)
+        if suffix in self.transforms:
+            if self.transforms[suffix] > 1:
+                pen_name = "t{}_{}".format(self.transforms[suffix] - 1, suffix)
+            else:
+                pen_name = suffix
+        else:
+            raise Exception("No penultimate name available")
+
+        return pen_name
+
+    def get_suffix(self, name):
+        suffix = name
+        if suffix[0] == 't' and suffix[1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            ii = 2
+            while True:
+                if suffix[ii] == '_':
+                    break
+                else:
+                    ii += 1
+            suffix = suffix[ii + 1:]
+        return suffix
