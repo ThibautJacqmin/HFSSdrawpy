@@ -36,7 +36,7 @@ class ComsolModeler(object):
         self.main_wp.set("selplaneshow", "on")
         self.pec.selection().named("main_geom_main_wp_pec_sel_bnd")
 
-        self.model.param().group().create("inter_params")
+        self.inter_params = self.model.param().group().create("inter_params")
 
         self.main_geom.run()
 
@@ -47,7 +47,7 @@ class ComsolModeler(object):
     def set_variable(self, name, value):
 
         def hfss_to_comsol(v):
-            # Transforms '25pm' into '25[pm]'
+            # Transforms '25um' into '25[um]'
             numerics = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', 'e', '+', '-']
             for i, c in enumerate(str(v)):
                 if c not in numerics:
@@ -111,10 +111,10 @@ class ComsolModeler(object):
             pos_y = str(pos[h_idx])
 
         rect = self.main_wp.geom().create(rectangle_name, "Rectangle")
-        self.model.param("inter_params").set("{}_width".format(rectangle_name), str(width))
-        self.model.param("inter_params").set("{}_height".format(rectangle_name), str(height))
-        self.model.param("inter_params").set("{}_pos_x".format(rectangle_name), str(pos_x))
-        self.model.param("inter_params").set("{}_pos_y".format(rectangle_name), str(pos_y))
+        self.inter_params.set("{}_width".format(rectangle_name), str(width))
+        self.inter_params.set("{}_height".format(rectangle_name), str(height))
+        self.inter_params.set("{}_pos_x".format(rectangle_name), str(pos_x))
+        self.inter_params.set("{}_pos_y".format(rectangle_name), str(pos_y))
         rect.setIndex("size", "{}_width".format(rectangle_name), 0)
         rect.setIndex("size", "{}_height".format(rectangle_name), 1)
         rect.setIndex("pos", "{}_pos_x".format(rectangle_name), 0)
@@ -159,6 +159,104 @@ class ComsolModeler(object):
 
         return polygon_name
 
+    def sweep_along_path(self, points, port_ori, port_pos, port_width, fillet_radius, path_name):
+
+        comp_name = self.new_transform_name("path_generator")
+        geom_name = self.new_transform_name("line_geom")
+        wp_line_name = self.new_transform_name("wp_line")
+        line_name = self.new_transform_name("line")
+        wp_sq_name = self.new_transform_name("wp_sq")
+        import_name = self.new_transform_name("import")
+        cross_section_name = path_name
+        sweep_name = self.new_transform_name("sweep")
+        delete_name = self.new_transform_name("del")
+
+        comp = self.model.component().create(comp_name, True)
+        geom = comp.geom().create(geom_name, 3)
+        wp_line = geom.create(wp_line_name, "WorkPlane")
+        line = wp_line.geom().create(line_name, "Polygon")
+        line.set("source", "table")
+        line.set("type", "open")
+        nb_edges = 2 * len(points) - 3 #number of edges after filleting an open polygon
+
+        for ii, point in enumerate(points):
+            self.inter_params.set("{}_point_{}_x".format(line_name, str(ii)), str(point[0]))
+            self.inter_params.set("{}_point_{}_y".format(line_name, str(ii)), str(point[1]))
+            line.setIndex("table", "{}_point_{}_x".format(line_name, str(ii)), ii, 0)
+            line.setIndex("table", "{}_point_{}_y".format(line_name, str(ii)), ii, 1)
+
+        geom.run()
+
+        fillet_name = self.new_transform_name(line_name)
+        fillet = wp_line.geom().create(fillet_name, "Fillet")
+        fillet.set("radius", str(fillet_radius))
+        ii = 1
+        while True:
+            try:
+                fillet.selection("point").add(line_name, ii)
+                ii += 1
+                geom.run()
+            except:
+                break
+
+        wp_sq = geom.create(wp_sq_name, "WorkPlane")
+
+        geom.run()
+
+        wp_sq.set("planetype", "normalvector")
+        self.inter_params.set("{}_port_ori_x".format(line_name), str(port_ori[0]))
+        self.inter_params.set("{}_port_ori_y".format(line_name), str(port_ori[1]))
+        wp_sq.setIndex("normalvector", "{}_port_ori_x".format(line_name), 0)
+        wp_sq.setIndex("normalvector", "{}_port_ori_y".format(line_name), 1)
+        wp_sq.setIndex("normalvector", "0", 2)
+
+        geom.run()
+
+        self.inter_params.set("{}_port_pos_x".format(line_name), str(port_pos[0]))
+        self.inter_params.set("{}_port_pos_y".format(line_name), str(port_pos[1]))
+        wp_sq.setIndex("normalcoord", "{}_port_pos_x".format(line_name), 0)
+        wp_sq.setIndex("normalcoord", "{}_port_pos_y".format(line_name), 1)
+        wp_sq.setIndex("normalcoord", "0", 2)
+
+        geom.run()
+
+        sq = wp_sq.geom().create("sq", "Square")
+        sq.set("base", "center")
+        sq.set("size", str(port_width))
+
+        geom.run()
+
+        sweep = geom.create(sweep_name, "Sweep")
+        sweep.set("smooth", "off")
+        sweep.set("keep", "off")
+        sweep.selection("face").set(wp_sq_name, 1)
+        for edge_idx in range(1, nb_edges + 1):
+            sweep.selection("edge").add(wp_line_name, edge_idx)
+
+        geom.run()
+
+
+
+        _import = self.main_geom.create(import_name, "Import")
+        _import.set("type", "sequence")
+        _import.set("sequence", geom_name)
+        _import.importData()
+        self.main_geom.feature().move(import_name, 0)
+
+        cross_section = self.main_wp.geom().create(cross_section_name, "CrossSection")
+        cross_section.set("intersect", "selected")
+        cross_section.selection("input").set(import_name)
+        self.main_geom.run()
+
+        delete = self.main_geom.create(delete_name, "Delete")
+        delete.selection("input").init(3)
+        delete.selection("input").set(import_name, 1)
+        self.main_geom.run()
+
+        return path_name
+
+
+
 
     def assign_perfect_E(self, entities, name):
         if not isinstance(entities, list):
@@ -183,10 +281,7 @@ class ComsolModeler(object):
             if name in self.suppressed_entities:
                 print('{} not translated, must have been suppressed by union'.format(name))
             else:
-                #t1 = time.perf_counter()
                 rot_name = self.new_transform_name(name)
-                #t2 = time.perf_counter()
-                #print("New rot name generation time : ", t2 - t1)
                 rot = self.main_wp.geom().create(rot_name, "Rotate")
                 rot.set("rot", angle)
                 rot.setIndex("pos", str(center[0]), 0)
@@ -257,12 +352,10 @@ class ComsolModeler(object):
 
 
     def fillet(self, entity, radius, vertex_indices=None):
-
-        fillet_name = self.new_transform_name(entity.name)
-        fillet = self.main_wp.geom().create(fillet_name, "Fillet")
-        fillet.set("radius", str(radius))
-
         if vertex_indices is None:
+            fillet_name = self.new_transform_name(entity.name)
+            fillet = self.main_wp.geom().create(fillet_name, "Fillet")
+            fillet.set("radius", str(radius))
             ii = 1
             while True:
                 try:
@@ -276,6 +369,7 @@ class ComsolModeler(object):
 
 
     def get_vertex_ids(self, entity):
+        '''
         sel_name = self.new_transform_name("get_vertex_ids")
         sel = self.main_wp.geom().create(sel_name, "ExplicitSelection")
         ids = []
@@ -288,9 +382,8 @@ class ComsolModeler(object):
                 break
             ids.append(ii)
             ii += 1
-
-
-        return ids
+        '''
+        pass
 
     def assign_mesh_length(self, entities, length):
         pass

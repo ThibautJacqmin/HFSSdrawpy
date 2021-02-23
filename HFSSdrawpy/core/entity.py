@@ -148,6 +148,9 @@ class Entity():
 
         assert (not self.is_fillet), 'Cannot fillet an already filleted entity'
 
+        if self.body.mode == "comsol" and vertex_indices != None:
+            return None
+
         if vertex_indices is None:
             # filleting all vertices
             msg = 'Should provide a single radius when filleting all vertices'

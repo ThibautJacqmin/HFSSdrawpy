@@ -378,6 +378,22 @@ class Body(Modeler):
 
             path_entity.delete()
 
+        elif self.mode == 'comsol':
+            ori = port.ori
+            pos = port.pos
+
+            for ii in range(port.N):
+                offset = port.offsets[ii]
+                width = port.widths[ii]
+                subname = port.subnames[ii]
+                layer = port.layers[ii]
+                path_name = name + '_' + subname + '_path'
+                self.interface.sweep_along_path(points, ori, pos, width, fillet, path_name) # /!\ Need to add offset
+                entity = Entity(2, self, layer = layer, name = path_name)
+                model_entities.append(entity)
+                #here the path is added to the entities, not the port -> problem ?
+
+
         return model_entities
 
     ### Advanced methods
