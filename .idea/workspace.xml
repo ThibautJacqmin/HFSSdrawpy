@@ -18,8 +18,8 @@
       <file leaf-file-name="modeler.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/modeler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="227">
-              <caret line="155" column="25" lean-forward="false" selection-start-line="155" selection-start-column="24" selection-end-line="155" selection-end-column="25" />
+            <state relative-caret-position="285">
+              <caret line="189" column="8" lean-forward="false" selection-start-line="189" selection-start-column="4" selection-end-line="189" selection-end-column="8" />
               <folding />
             </state>
           </provider>
@@ -40,8 +40,18 @@
       <file leaf-file-name="port.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/port.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-189">
-              <caret line="12" column="8" lean-forward="false" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="8" />
+            <state relative-caret-position="256">
+              <caret line="23" column="19" lean-forward="true" selection-start-line="23" selection-start-column="19" selection-end-line="23" selection-end-column="19" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="utils.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/HFSSdrawpy/utils.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="86">
+              <caret line="278" column="22" lean-forward="true" selection-start-line="278" selection-start-column="22" selection-end-line="278" selection-end-column="22" />
               <folding />
             </state>
           </provider>
@@ -50,8 +60,8 @@
       <file leaf-file-name="body.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/body.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="483">
-              <caret line="392" column="45" lean-forward="true" selection-start-line="392" selection-start-column="45" selection-end-line="392" selection-end-column="45" />
+            <state relative-caret-position="323">
+              <caret line="512" column="20" lean-forward="false" selection-start-line="512" selection-start-column="17" selection-end-line="512" selection-end-column="21" />
               <folding>
                 <element signature="e#0#27#0" expanded="true" />
               </folding>
@@ -62,10 +72,10 @@
       <file leaf-file-name="comsol_modeler.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/comsol_modeler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-45">
-              <caret line="54" column="48" lean-forward="true" selection-start-line="54" selection-start-column="48" selection-end-line="54" selection-end-column="48" />
+            <state relative-caret-position="592">
+              <caret line="67" column="69" lean-forward="false" selection-start-line="67" selection-start-column="69" selection-end-line="67" selection-end-column="69" />
               <folding>
-                <element signature="e#90#103#0" expanded="true" />
+                <element signature="e#194#207#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -74,8 +84,8 @@
       <file leaf-file-name="gds_modeler.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/gds_modeler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="678">
-              <caret line="108" column="12" lean-forward="false" selection-start-line="108" selection-start-column="8" selection-end-line="108" selection-end-column="12" />
+            <state relative-caret-position="211">
+              <caret line="118" column="0" lean-forward="true" selection-start-line="118" selection-start-column="0" selection-end-line="118" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -84,8 +94,8 @@
       <file leaf-file-name="hfss_modeler.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/hfss_modeler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="179">
-              <caret line="1052" column="0" lean-forward="true" selection-start-line="1052" selection-start-column="0" selection-end-line="1052" selection-end-column="0" />
+            <state relative-caret-position="227">
+              <caret line="793" column="9" lean-forward="false" selection-start-line="793" selection-start-column="4" selection-end-line="793" selection-end-column="9" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -97,36 +107,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>def sweep_</find>
-      <find>sweep</find>
-      <find>def sweep</find>
-      <find>def pat</find>
-      <find>def get_v</find>
-      <find>run</find>
-      <find>fille</find>
-      <find>def rot</find>
-      <find>vert</find>
-      <find>def assi</find>
-      <find>def assign</find>
-      <find>kwargs</find>
-      <find>fillet</find>
-      <find>layer</find>
-      <find>rect</find>
-      <find>def fil</find>
-      <find>def rec</find>
-      <find>def rect$</find>
-      <find>def dele</find>
-      <find>path</find>
+      <find>supp</find>
+      <find>wirebond</find>
+      <find>return</find>
+      <find>import</find>
       <find>def port</find>
-      <find>def rect</find>
-      <find>&quot;table&quot;</find>
-      <find>setIndex</find>
-      <find>Could not find points to elongate</find>
+      <find>def box</find>
+      <find>def dele</find>
+      <find>def del</find>
+      <find>def</find>
+      <find>ret</find>
+      <find>def delete</find>
+      <find>def sub</find>
+      <find>wp</find>
+      <find>try</find>
+      <find>try:</find>
+      <find>tag()</find>
+      <find>def porrt</find>
       <find>def path</find>
-      <find>t1</find>
-      <find>def poly</find>
-      <find>def sw</find>
-      <find>Warning</find>
+      <find>main_wp</find>
+      <find>path_entities</find>
+      <find>find_workplane</find>
+      <find>find</find>
+      <find>def _</find>
+      <find>def rect</find>
+      <find>get_suffix</find>
+      <find>penultimate_transform_name</find>
+      <find>last_transform_name</find>
+      <find>new_transform_name</find>
+      <find>comsol_str</find>
+      <find>set_workplane</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -135,10 +145,10 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/HFSSdrawpy/core/modeler.py" />
-        <option value="$PROJECT_DIR$/HFSSdrawpy/interfaces/hfss_modeler.py" />
         <option value="$PROJECT_DIR$/HFSSdrawpy/interfaces/gds_modeler.py" />
         <option value="$PROJECT_DIR$/HFSSdrawpy/core/entity.py" />
+        <option value="$PROJECT_DIR$/HFSSdrawpy/core/modeler.py" />
+        <option value="$PROJECT_DIR$/HFSSdrawpy/interfaces/hfss_modeler.py" />
         <option value="$PROJECT_DIR$/HFSSdrawpy/core/body.py" />
         <option value="$PROJECT_DIR$/HFSSdrawpy/interfaces/comsol_modeler.py" />
       </list>
@@ -236,6 +246,7 @@
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../drawpylib (not a clone)" />
+    <property name="SearchEverywhereHistoryKey" value="Vector&#9;null&#9;null" />
   </component>
   <component name="RunManager">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
@@ -453,7 +464,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#90#103#0" expanded="true" />
+            <element signature="e#194#207#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -499,7 +510,7 @@
         <state relative-caret-position="4641">
           <caret line="279" column="71" lean-forward="true" selection-start-line="279" selection-start-column="71" selection-end-line="279" selection-end-column="71" />
           <folding>
-            <element signature="e#90#103#0" expanded="true" />
+            <element signature="e#194#207#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -524,10 +535,18 @@
     </entry>
     <entry file="file://$USER_HOME$/.PyCharmCE2016.3/system/python_stubs/1835765621/__builtin__.py" />
     <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/comsol_modeler_old3D.py" />
+    <entry file="file://$PROJECT_DIR$/HFSSdrawpy/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="86">
+          <caret line="278" column="22" lean-forward="true" selection-start-line="278" selection-start-column="22" selection-end-line="278" selection-end-column="22" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/modeler.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="227">
-          <caret line="155" column="25" lean-forward="false" selection-start-line="155" selection-start-column="24" selection-end-line="155" selection-end-column="25" />
+        <state relative-caret-position="285">
+          <caret line="189" column="8" lean-forward="false" selection-start-line="189" selection-start-column="4" selection-end-line="189" selection-end-column="8" />
           <folding />
         </state>
       </provider>
@@ -542,48 +561,48 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/port.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-189">
-          <caret line="12" column="8" lean-forward="false" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/gds_modeler.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="678">
-          <caret line="108" column="12" lean-forward="false" selection-start-line="108" selection-start-column="8" selection-end-line="108" selection-end-column="12" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/body.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="483">
-          <caret line="392" column="45" lean-forward="true" selection-start-line="392" selection-start-column="45" selection-end-line="392" selection-end-column="45" />
+        <state relative-caret-position="323">
+          <caret line="512" column="20" lean-forward="false" selection-start-line="512" selection-start-column="17" selection-end-line="512" selection-end-column="21" />
           <folding>
             <element signature="e#0#27#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/HFSSdrawpy/core/port.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="256">
+          <caret line="23" column="19" lean-forward="true" selection-start-line="23" selection-start-column="19" selection-end-line="23" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/hfss_modeler.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="179">
-          <caret line="1052" column="0" lean-forward="true" selection-start-line="1052" selection-start-column="0" selection-end-line="1052" selection-end-column="0" />
+        <state relative-caret-position="227">
+          <caret line="793" column="9" lean-forward="false" selection-start-line="793" selection-start-column="4" selection-end-line="793" selection-end-column="9" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/gds_modeler.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="211">
+          <caret line="118" column="0" lean-forward="true" selection-start-line="118" selection-start-column="0" selection-end-line="118" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/HFSSdrawpy/interfaces/comsol_modeler.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-45">
-          <caret line="54" column="48" lean-forward="true" selection-start-line="54" selection-start-column="48" selection-end-line="54" selection-end-column="48" />
+        <state relative-caret-position="592">
+          <caret line="67" column="69" lean-forward="false" selection-start-line="67" selection-start-column="69" selection-end-line="67" selection-end-column="69" />
           <folding>
-            <element signature="e#90#103#0" expanded="true" />
+            <element signature="e#194#207#0" expanded="true" />
           </folding>
         </state>
       </provider>

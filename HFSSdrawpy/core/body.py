@@ -388,7 +388,7 @@ class Body(Modeler):
                 subname = port.subnames[ii]
                 layer = port.layers[ii]
                 path_name = name + '_' + subname + '_path'
-                self.interface.sweep_along_path(points, ori, pos, width, fillet, path_name) # /!\ Need to add offset
+                self.interface.sweep_along_path(points, ori, pos, width, fillet, path_name, **kwargs) # /!\ Need to add offset
                 entity = Entity(2, self, layer = layer, name = path_name)
                 model_entities.append(entity)
                 #here the path is added to the entities, not the port -> problem ?
