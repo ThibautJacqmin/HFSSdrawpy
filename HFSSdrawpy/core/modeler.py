@@ -59,7 +59,7 @@ class Modeler():
             from ..interfaces import comsol_modeler
             self.interface = comsol_modeler.ComsolModeler()
         else:
-            print('Mode should be either hfss or gds')
+            print('Mode should be either hfss, gds, or comsol')
 
         #The list of bodies pointing to the current Modeler
         self.bodies = []

@@ -10,27 +10,45 @@ Next things to do :
     - Draw wirebond
 """
 
-
-import ntpath
-import __main__
 import mph
+from pathlib import Path
+import os
+from subprocess import Popen
+
+# Bizarre d'importer drawpylib dans hfssdrawpy
 import drawpylib.parameters as layer_ids
 from functools import wraps
 
 from ..utils import parse_entry, val, Vector
 from ..core.entity import gen_name
 
-class ComsolModeler(object):
+class ComsolModeler():
 
-    def __init__(self):
-        '''Comsol Modeler opens a Comsol client with mph, you need to have a Comsol server
-        of the right version (5.6 by defalut) listening on port 2036
-        To see the results in the GUI, open a Comsol client and import the running model'''
+    def __init__(self, number_of_cores=1, save_path=None, gui=True):
+        '''Comsol Modeler opens a Comsol server listening on port 2036
+        and a comsol client connected to that server.
+        Then it opens the Comsol GUI if neede to follow the model modifications
+        One just needs to connect the session to the server in the gui: 
+            File/Comsol Multiphysics server/connect to server
+        And to import the running model:
+            File/Comsol Multiphysics server/import application from server            
+         '''
 
-        #mph is only used to create a client, then the Python-Java bridge JPype is used throughout the code
-        self.version = '5.6'
-        self.client = mph.Client(cores = 1, version = self.version, port = 2036)
-        self.pymodel = self.client.create(ntpath.basename(__main__.__file__))
+        self.comsol_version = '5.6'
+        self._number_of_cores = number_of_cores # read-only property
+        self.server = mph.Server(cores=number_of_cores)
+        self.server_port = 2036
+        print(f"Comsol server started listening on port {self.server_port}")
+        self.client = mph.Client(cores=number_of_cores, 
+                                 version=self.comsol_version, 
+                                 port=self.server_port)
+        print(f"Comsol client (v{self.comsol_version}) connected to server")
+        if save_path is None:
+            self._save_path = str(Path.home().joinpath('MyModel.mph'))
+        self.pymodel = self.client.create(self.save_path)
+        print(f"Comsol model saved in {self.save_path}")
+        if gui:
+            self.start_gui()
         self.model = self.pymodel.java
 
         self.deleted_entities = []
@@ -65,8 +83,19 @@ class ComsolModeler(object):
 
         self.main_geom.run()
 
-        input('COMSOL client created. Press enter when your GUI is ready.')
+        
+    @property
+    def number_of_cores(self):
+        return self._number_of_cores
 
+    @property
+    def save_path(self):
+        return self._save_path
+    
+    def start_gui(self):
+        info = mph.discovery.backend()
+        self.gui = Popen(str(info["root"].joinpath('bin', 'comsol')))
+        
 
     def set_variable(self, name, value):
         '''The parameter is added in the main param table, which is the only one that should be used in the GUI'''
