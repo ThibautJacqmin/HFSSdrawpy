@@ -145,13 +145,16 @@ class ComsolModeler():
         '''The parameter is added in the main param table, which is the only
         one that should be used in the GUI'''
 
-        def hfss_to_comsol(v):
+        def hfss_to_comsol(s):
             '''Transforms '25um' into '25[um]'''
             numerics = '0123456789.e+-'
-            ind_unit = [i for i, c in enumerate(str(v)) if c not in numerics]
-            value = v[:ind_unit[0]]            
-            unit = v[ind_unit[0]:] 
-            return f"{value}[{unit}]"
+            ind_unit = [i for i, c in enumerate(str(s)) if c not in numerics]
+            if ind_unit:
+                value = s[:ind_unit[0]]            
+                unit = s[ind_unit[0]:] 
+                return f"{value}[{unit}]"
+            else: # Case when no unit
+                return s
 
         if isinstance(value, str):
             self.model.param().set(name, str(hfss_to_comsol(value)))
