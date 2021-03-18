@@ -142,58 +142,6 @@ class ComsolModeler():
     @property
     def save_path(self):
         return self._save_path  
-    
-    def get_all_parameters(self):
-        """
-        Adapted from MPh model.py https://github.com/John-Hennig/MPh
-        Get the model parameters. The parameters are returned as a list of 
-        tuples holding name, value, and description for each of them.
-        """
-        Parameter = namedtuple('parameter', ('name', 'value', 'description'))
-        parameters = []
-        for name in self.model.param().varnames():
-            name  = str(name)
-            value = str(self.model.param().get(name))
-            descr = str(self.model.param().descr(name))
-            parameters.append(Parameter(name, value, descr))
-        return parameters
-    
-    def parameter(self, name, value=None, unit=None, description=None,
-                  evaluate=False):
-        """
-        Adapted from MPh model.py https://github.com/John-Hennig/MPh
-        Returns or sets the parameter of the given `name`.
-
-        If no `value` is given (the default `None` is passed), returns
-        the value of the named parameter. Otherwise sets it.
-
-        Values are accepted as expressions (strings) or as numerical
-        values (referring to default units). An optional `unit` may be
-        specified, unless it is already part of the expression itself,
-        inside square brackets.
-
-        By default, values are always returned as strings, i.e. the
-        expression as entered in the user interface. That expression
-        may include the unit, again inside brackets. If the option
-        `evaluate` is set to `True`, the numerical value that the
-        parameter expression evaluate to is returned.
-
-        A parameter `description` can be supplied and will be set
-        regardless of a value being passed or not.
-        """
-        if description is not None:
-            value = self.parameter(name)
-            self.model.param().set(name, value, description)
-        if value is None:
-            if not evaluate:
-                return str(self.model.param().get(name))
-            else:
-                return self.model.param().evaluate(name)
-        else:
-            value = str(value)
-            if unit:
-                value += f' [{unit}]'
-            self.model.param().set(name, value)
             
 
     def set_variable(self, name, value):
