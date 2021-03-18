@@ -13,7 +13,8 @@ Next things to do :
 import mph
 from pathlib import Path
 import os
-from subprocess import Popen
+import subprocess
+import signal
 
 # Bizarre d'importer drawpylib dans hfssdrawpy
 import drawpylib.parameters as layer_ids
@@ -82,20 +83,35 @@ class ComsolModeler():
         self.inter_params = self.model.param().group().create("inter_params")
 
         self.main_geom.run()
-
         
+        
+        #    
+    def start_gui(self):
+        info = mph.discovery.backend()
+        self.gui = subprocess.Popen(str(info["root"].joinpath('bin', 'comsol')), 
+                                    stdout=subprocess.PIPE, shell=True,
+                                    preexec_fn=os.setsid)                            
+        
+    def close_gui(self):
+        os.killpg(os.getpgid(self.gui.pid), signal.SIGTERM)
+        pass
+    
+    def close(self):   
+        """Disconnects client from server, closes server,
+        and exits gui in a clean way"""
+        self.client.disconnect()
+        self.server.stop()
+        self.close_gui()
+        
+
+    # Read-only variables    
     @property
     def number_of_cores(self):
         return self._number_of_cores
 
     @property
     def save_path(self):
-        return self._save_path
-    
-    def start_gui(self):
-        info = mph.discovery.backend()
-        self.gui = Popen(str(info["root"].joinpath('bin', 'comsol')))
-        
+        return self._save_path        
 
     def set_variable(self, name, value):
         '''The parameter is added in the main param table, which is the only one that should be used in the GUI'''
