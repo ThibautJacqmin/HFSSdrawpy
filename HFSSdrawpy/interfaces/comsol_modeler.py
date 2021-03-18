@@ -147,7 +147,7 @@ class ComsolModeler():
     def set_variable(self, name, value):
         '''The parameter is added in the main param table, which is the only
         one that should be used in the GUI'''
-
+        
         def hfss_to_comsol(s):
             '''Transforms '25um' into '25[um]'''
             numerics = '0123456789.e+-'
@@ -158,11 +158,8 @@ class ComsolModeler():
                 return f"{val}[{unit}]"
             else: # Case when no unit
                 return s
+        self.model.parameter(name, hfss_to_comsol(value))
 
-        if isinstance(value, str):
-            self.model.param().set(name, str(hfss_to_comsol(value)))
-        else:
-            self.model.param().set(name, str(value))
 
     def create_coor_sys(self, *args, **kwargs):
         '''Only uselful in hfss'''
