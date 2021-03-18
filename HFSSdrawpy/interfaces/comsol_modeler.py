@@ -15,17 +15,18 @@ from pathlib import Path
 import os
 import subprocess
 import signal
+from collections import namedtuple 
 
 # Bizarre d'importer drawpylib dans hfssdrawpy
 import drawpylib.parameters as layer_ids
 from functools import wraps
 
-from ..utils import parse_entry, val, Vector
-from ..core.entity import gen_name
+#from ..utils import parse_entry, val, Vector
+#from ..core.entity import gen_name
 
 class ComsolModeler():
 
-    def __init__(self, number_of_cores=1, save_path=None, gui=True):
+    def __init__(self, number_of_cores=1, save_path=None, gui=False):
         '''Comsol Modeler opens a Comsol server listening on port 2036
         and a comsol client connected to that server.
         Then it opens the Comsol GUI if neede to follow the model modifications
@@ -96,6 +97,20 @@ class ComsolModeler():
 
         self.main_geom.run()
         
+    def get_parameters(self):
+        """
+        Get the model parameters. The parameters are returned as a list of 
+        tuples holding name, value, and description for each of them.
+        """
+        Parameter = namedtuple('parameter', ('name', 'value', 'description'))
+        parameters = []
+        for name in self.model.param().varnames():
+            name  = str(name)
+            value = str(self.model.param().get(name))
+            descr = str(self.model.param().descr(name))
+            parameters.append(Parameter(name, value, descr))
+        return parameters
+        
         
     def start_gui(self):
         """Starts the COMSOL GUI"""
@@ -150,9 +165,9 @@ class ComsolModeler():
             numerics = '0123456789.e+-'
             ind_unit = [i for i, c in enumerate(str(s)) if c not in numerics]
             if ind_unit:
-                value = s[:ind_unit[0]]            
+                val = s[:ind_unit[0]]            
                 unit = s[ind_unit[0]:] 
-                return f"{value}[{unit}]"
+                return f"{val}[{unit}]"
             else: # Case when no unit
                 return s
 
