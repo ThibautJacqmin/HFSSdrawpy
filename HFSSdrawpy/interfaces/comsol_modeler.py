@@ -36,20 +36,30 @@ class ComsolModeler():
          '''
 
         self.comsol_version = '5.6'
-        self._number_of_cores = number_of_cores # read-only property
+        self._number_of_cores = number_of_cores
+        
+        # Run server
         self.server = mph.Server(cores=number_of_cores)
         self.server_port = 2036
         print(f"Comsol server started listening on port {self.server_port}")
+        
+        # Connect client to server
         self.client = mph.Client(cores=number_of_cores, 
                                  version=self.comsol_version, 
                                  port=self.server_port)
         print(f"Comsol client (v{self.comsol_version}) connected to server")
+        
+        # Save current model
         if save_path is None:
             self._save_path = str(Path.home().joinpath('MyModel.mph'))
         self.pymodel = self.client.create(self.save_path)
         print(f"Comsol model saved in {self.save_path}")
+        
+        # Start GUI
         if gui:
             self.start_gui()
+            
+            
         self.model = self.pymodel.java
 
         self.deleted_entities = []
@@ -99,9 +109,21 @@ class ComsolModeler():
     def close(self):   
         """Disconnects client from server, closes server,
         and exits gui in a clean way"""
-        self.client.disconnect()
-        self.server.stop()
-        self.close_gui()
+        try:
+            self.client.disconnect()
+            print("Client disconnected")
+        except RuntimeError:
+            pass
+        try:
+            self.server.stop()
+            print("Server stopped")
+        except RuntimeError:
+            pass
+        try:
+            self.close_gui()
+            print("GUI closed")
+        except RuntimeError:
+            pass
         
 
     # Read-only variables    
