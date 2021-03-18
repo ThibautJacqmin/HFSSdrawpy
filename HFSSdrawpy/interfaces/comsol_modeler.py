@@ -56,6 +56,10 @@ class ComsolModeler():
         self.pymodel = self.client.create(self.save_path)
         # Saves in order to reload using the MPh library
         self.pymodel.java.save(self.save_path)
+        # Remove model from client before loading it again...
+        # This is needed due to the way MpH works (model.py is instantiated
+        # by loading a .mph file)
+        self.client.remove(self.pymodel)
         print(f"Comsol model saved in {self.save_path}")
         
         # Start GUI
@@ -159,7 +163,6 @@ class ComsolModeler():
             else: # Case when no unit
                 return s
         self.model.parameter(name, hfss_to_comsol(value))
-
 
     def create_coor_sys(self, *args, **kwargs):
         '''Only uselful in hfss'''
