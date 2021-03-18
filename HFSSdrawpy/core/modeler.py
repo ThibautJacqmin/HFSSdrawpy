@@ -57,7 +57,9 @@ class Modeler():
             self.interface = gds_modeler.GdsModeler()
         elif mode=="comsol":
             from ..interfaces import comsol_modeler
-            self.interface = comsol_modeler.ComsolModeler()
+            self.interface = comsol_modeler.ComsolModeler(number_of_cores=1, 
+                                                          save_path=None, 
+                                                          gui=False)
         else:
             print('Mode should be either hfss, gds, or comsol')
 
