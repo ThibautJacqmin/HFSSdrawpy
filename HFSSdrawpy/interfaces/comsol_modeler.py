@@ -64,9 +64,10 @@ class ComsolModeler():
 
         self.deleted_entities = []
 
-        # dict containing the number of transforms having been applied to a given entity
-        # every new transformation is named tN_name where name is the actual entity name and N-1 the number of transforms
-        # it has already experienced
+        # dict containing the number of transforms having been applied to a 
+        # given entity. Every new transformation is named tN_name where name 
+        # is the actual entity name and N-1 the number of transforms it has 
+        # already experienced.
         # New trasnforms should always be applied to self._last_transfrom_name(name)
         self.transforms = {}
 
@@ -74,7 +75,8 @@ class ComsolModeler():
         self.main_comp.geom().create("main_geom", 3)
         self.main_geom = self.model.component("main_comp").geom("main_geom")
 
-        #two workplanes are created : one for all physical components (main_wp) and one for MESH and PORT layers
+        #two workplanes are created : one for all physical components (main_wp) 
+        # and one for MESH and PORT layers
         self.main_wp = self.main_geom.create("main_wp", "WorkPlane")
         self.main_wp_entities = []
         self.mesh_port_wp = self.main_geom.create("mesh_port_wp", "WorkPlane")
@@ -95,17 +97,21 @@ class ComsolModeler():
         self.main_geom.run()
         
         
-        #    
     def start_gui(self):
+        """Starts the COMSOL GUI"""
         info = mph.discovery.backend()
         self.gui = subprocess.Popen(str(info["root"].joinpath('bin', 'comsol')), 
                                     stdout=subprocess.PIPE, shell=True,
-                                    preexec_fn=os.setsid)                            
+                                    preexec_fn=os.setsid) 
+        print("""You can now manually connect the GUI to the server:
+              File/Comsol Multiphysics server/connect to server
+        and import the current model in the GUI:
+              File/Comsol Multiphysics server/import application from server""")                           
         
     def close_gui(self):
         os.killpg(os.getpgid(self.gui.pid), signal.SIGTERM)
-        pass
-    
+        print("GUI closed")
+                    
     def close(self):   
         """Disconnects client from server, closes server,
         and exits gui in a clean way"""
@@ -121,10 +127,8 @@ class ComsolModeler():
             pass
         try:
             self.close_gui()
-            print("GUI closed")
         except RuntimeError:
             pass
-        
 
     # Read-only variables    
     @property
@@ -133,18 +137,21 @@ class ComsolModeler():
 
     @property
     def save_path(self):
-        return self._save_path        
+        return self._save_path     
+    
+    
 
     def set_variable(self, name, value):
-        '''The parameter is added in the main param table, which is the only one that should be used in the GUI'''
+        '''The parameter is added in the main param table, which is the only
+        one that should be used in the GUI'''
 
         def hfss_to_comsol(v):
             '''Transforms '25um' into '25[um]'''
-            numerics = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', 'e', '+', '-']
-            for i, c in enumerate(str(v)):
-                if c not in numerics:
-                    break
-            return '{}[{}]'.format(v[:i], v[i:])
+            numerics = '0123456789.e+-'
+            ind_unit = [i for i, c in enumerate(str(v)) if c not in numerics]
+            value = v[:ind_unit[0]]            
+            unit = v[ind_unit[0]:] 
+            return f"{value}[{unit}]"
 
         if isinstance(value, str):
             self.model.param().set(name, str(hfss_to_comsol(value)))
