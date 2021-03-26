@@ -21,8 +21,8 @@ from collections import namedtuple
 import drawpylib.parameters as layer_ids
 from functools import wraps
 
-#from ..utils import parse_entry, val, Vector
-#from ..core.entity import gen_name
+from ..utils import parse_entry, val, Vector
+from ..core.entity import gen_name
 
 class ComsolModeler():
 
@@ -100,8 +100,9 @@ class ComsolModeler():
         self.pec.selection().named("main_geom_main_wp_pec_sel_bnd")
 
         #Comsol fails to read to long expressions, so we create intermediray parameters in a second table
-        self.inter_params = self.model.java.param().group().create("inter_params")
+        #elf.inter_params = self.model.java.param().group().create("inter_params")
 
+        self.objects = {}
         self.main_geom.run()
         
         
@@ -162,7 +163,10 @@ class ComsolModeler():
                 return f"{val}[{unit}]"
             else: # Case when no unit
                 return s
-        self.model.parameter(name, hfss_to_comsol(value))
+        if isinstance(value, str):
+            self.model.parameter(name, hfss_to_comsol(value))
+        else:
+            self.model.parameter(name, str(value))
 
     def create_coor_sys(self, *args, **kwargs):
         '''Only uselful in hfss'''
@@ -196,26 +200,26 @@ class ComsolModeler():
         name = kwargs["name"]
 
         #Comsol does not support negative sizes, so this is dealt with here
-        if self.model.param().evaluate(self._comsol_str(size[0])) < 0:
-            size_0 = "-(" + self._comsol_str(size[0]) + ")"
-            pos_0 = self._comsol_str(pos[0]) + "+" + self._comsol_str(size[0])
+        if self.model.param().evaluate(self._sympy_to_comsol_str(size[0])) < 0:
+            size_0 = "-(" + self._sympy_to_comsol_str(size[0]) + ")"
+            pos_0 = self._sympy_to_comsol_str(pos[0]) + "+" + self._sympy_to_comsol_str(size[0])
         else:
-            size_0 = self._comsol_str(size[0])
-            pos_0 = self._comsol_str(pos[0])
+            size_0 = self._sympy_to_comsol_str(size[0])
+            pos_0 = self._sympy_to_comsol_str(pos[0])
 
-        if self.model.param().evaluate(self._comsol_str(size[1])) < 0:
-            size_1 = "-(" + self._comsol_str(size[1]) + ")"
-            pos_1 = self._comsol_str(pos[1]) + "+" + self._comsol_str(size[1])
+        if self.model.param().evaluate(self._sympy_to_comsol_str(size[1])) < 0:
+            size_1 = "-(" + self._sympy_to_comsol_str(size[1]) + ")"
+            pos_1 = self._sympy_to_comsol_str(pos[1]) + "+" + self._sympy_to_comsol_str(size[1])
         else:
-            size_1 = self._comsol_str(size[1])
-            pos_1 = self._comsol_str(pos[1])
+            size_1 = self._sympy_to_comsol_str(size[1])
+            pos_1 = self._sympy_to_comsol_str(pos[1])
 
-        if self.model.param().evaluate(self._comsol_str(size[2])) < 0:
-            size_2 = "-(" + self._comsol_str(size[2]) + ")"
-            pos_2 = self._comsol_str(pos[2]) + "+" + self._comsol_str(size[2])
+        if self.model.param().evaluate(self._sympy_to_comsol_str(size[2])) < 0:
+            size_2 = "-(" + self._sympy_to_comsol_str(size[2]) + ")"
+            pos_2 = self._sympy_to_comsol_str(pos[2]) + "+" + self._sympy_to_comsol_str(size[2])
         else:
-            size_2 = self._comsol_str(size[2])
-            pos_2 = self._comsol_str(pos[2])
+            size_2 = self._sympy_to_comsol_str(size[2])
+            pos_2 = self._sympy_to_comsol_str(pos[2])
 
         box = self.main_geom.create(name, "Block");
         box.setIndex("size", size_0, 0)
@@ -242,43 +246,35 @@ class ComsolModeler():
 
         rectangle_name = kwargs["name"]
         layer = kwargs["layer"]
+        
+        # Add 0 component if 2D vectors to make them 3D and parse
+        pos, size = self._make_3D(pos, size)
+        pos, size = parse_entry(pos, size)
+        
+        # Generate Comsol strings from Sympy expressions 
+        size_0, size_1 = self._sympy_to_comsol_str(size[0], size[1])
+        pos_0, pos_1 = self._sympy_to_comsol_str(pos[0], pos[1])
 
-        if len(pos)==2:
-            pos.append(0)
-        if len(size)==2:
-            size.append(0)
-        pos = parse_entry(pos)
-        size = parse_entry(size)
-
-        # Comsol does not support negative sizes, so this is dealt with here
-        if self.model.param().evaluate(self._comsol_str(size[0])) < 0:
-            width = "-(" + self._comsol_str(size[0]) + ")"
-            pos_x = self._comsol_str(pos[0]) + "+" + self._comsol_str(size[0])
-        else:
-            width = self._comsol_str(size[0])
-            pos_x = self._comsol_str(pos[0])
-
-        if self.model.param().evaluate(self._comsol_str(size[1])) < 0:
-            height = "-(" + self._comsol_str(size[1]) + ")"
-            pos_y = self._comsol_str(pos[1]) + "+" + self._comsol_str(size[1])
-        else:
-            height = self._comsol_str(size[1])
-            pos_y = self._comsol_str(pos[1])
+        # Ensure that width and height are positiv (Comsol don't like if <0)
+        pos_x, width = self._make_positiv(pos_0, size_0)
+        pos_y, height = self._make_positiv(pos_1, size_1)  
 
         #If the rectangle is in the MESH or PORT layer, it should be added to the specific workplane
         wp = self._set_workplane(layer, rectangle_name)
 
         rect = wp.geom().create(rectangle_name, "Rectangle")
-        self.inter_params.set("{}_width".format(rectangle_name), self._comsol_str(width))
-        self.inter_params.set("{}_height".format(rectangle_name), self._comsol_str(height))
-        self.inter_params.set("{}_pos_x".format(rectangle_name), self._comsol_str(pos_x))
-        self.inter_params.set("{}_pos_y".format(rectangle_name), self._comsol_str(pos_y))
-        rect.setIndex("size", "{}_width".format(rectangle_name), 0)
-        rect.setIndex("size", "{}_height".format(rectangle_name), 1)
-        rect.setIndex("pos", "{}_pos_x".format(rectangle_name), 0)
-        rect.setIndex("pos", "{}_pos_y".format(rectangle_name), 1)
-
-        print('Rectangle {} created'.format(rectangle_name))
+        self.model.parameter(f"{rectangle_name}_width", width)
+        self.model.parameter(f"{rectangle_name}_height", height)
+        self.model.parameter(f"{rectangle_name}_pos_x", pos_x)
+        self.model.parameter(f"{rectangle_name}_pos_y", pos_y)
+        rect.setIndex("size", f"{rectangle_name}_width", 0)
+        rect.setIndex("size", f"{rectangle_name}_height", 1)
+        rect.setIndex("pos", f"{rectangle_name}_pos_x", 0)
+        rect.setIndex("pos", f"{rectangle_name}_pos_y", 1)
+        
+        self.objects[rect.tag()]=rect
+        
+        print(f'Rectangle {rectangle_name} created')
 
         return rectangle_name
 
@@ -315,12 +311,13 @@ class ComsolModeler():
             pol.set("type", "open")
 
         for ii, point in enumerate(points):
-            pol.setIndex("table", self._comsol_str(point[0]), ii, 0)
-            pol.setIndex("table", self._comsol_str(point[1]), ii, 1)
+            pol.setIndex("table", self._sympy_to_comsol_str(point[0]), ii, 0)
+            pol.setIndex("table", self._sympy_to_comsol_str(point[1]), ii, 1)
 
         print('Polygon {} created'.format(polygon_name))
 
         return polygon_name
+    
 
     def sweep_along_path(self, points, port_ori, port_pos, port_width, fillet_radius, path_name, **kwargs):
         '''This functionnality does not exist in Comsol, so the trick is the following:
@@ -356,8 +353,8 @@ class ComsolModeler():
         nb_edges = 2 * len(points) - 3 #number of edges after filleting an open polygon
 
         for ii, point in enumerate(points):
-            self.inter_params.set("{}_point_{}_x".format(line_name, str(ii)), self._comsol_str(point[0]))
-            self.inter_params.set("{}_point_{}_y".format(line_name, str(ii)), self._comsol_str(point[1]))
+            self.inter_params.set("{}_point_{}_x".format(line_name, str(ii)), self._sympy_to_comsol_str(point[0]))
+            self.inter_params.set("{}_point_{}_y".format(line_name, str(ii)), self._sympy_to_comsol_str(point[1]))
             line.setIndex("table", "{}_point_{}_x".format(line_name, str(ii)), ii, 0)
             line.setIndex("table", "{}_point_{}_y".format(line_name, str(ii)), ii, 1)
 
@@ -366,7 +363,7 @@ class ComsolModeler():
         #The line is now being filleted
         fillet_name = self._new_transform_name(line_name)
         fillet = wp_line.geom().create(fillet_name, "Fillet")
-        fillet.set("radius", self._comsol_str(fillet_radius))
+        fillet.set("radius", self._sympy_to_comsol_str(fillet_radius))
         ii = 1
         while True:
             try:
@@ -382,16 +379,16 @@ class ComsolModeler():
         geom.run()
 
         wp_sq.set("planetype", "normalvector")
-        self.inter_params.set("{}_port_ori_x".format(line_name), self._comsol_str(port_ori[0]))
-        self.inter_params.set("{}_port_ori_y".format(line_name), self._comsol_str(port_ori[1]))
+        self.inter_params.set("{}_port_ori_x".format(line_name), self._sympy_to_comsol_str(port_ori[0]))
+        self.inter_params.set("{}_port_ori_y".format(line_name), self._sympy_to_comsol_str(port_ori[1]))
         wp_sq.setIndex("normalvector", "{}_port_ori_x".format(line_name), 0)
         wp_sq.setIndex("normalvector", "{}_port_ori_y".format(line_name), 1)
         wp_sq.setIndex("normalvector", "0", 2)
 
         geom.run()
 
-        self.inter_params.set("{}_port_pos_x".format(line_name), self._comsol_str(port_pos[0]))
-        self.inter_params.set("{}_port_pos_y".format(line_name), self._comsol_str(port_pos[1]))
+        self.inter_params.set("{}_port_pos_x".format(line_name), self._sympy_to_comsol_str(port_pos[0]))
+        self.inter_params.set("{}_port_pos_y".format(line_name), self._sympy_to_comsol_str(port_pos[1]))
         wp_sq.setIndex("normalcoord", "{}_port_pos_x".format(line_name), 0)
         wp_sq.setIndex("normalcoord", "{}_port_pos_y".format(line_name), 1)
         wp_sq.setIndex("normalcoord", "0", 2)
@@ -401,7 +398,7 @@ class ComsolModeler():
         #A square is created at the origin
         sq = wp_sq.geom().create("sq", "Square")
         sq.set("base", "center")
-        sq.set("size", self._comsol_str(port_width))
+        sq.set("size", self._sympy_to_comsol_str(port_width))
 
         geom.run()
 
@@ -462,30 +459,39 @@ class ComsolModeler():
         '''Rotation occurs in the  plane of the object
         Only works with 2D geometries for now
         center must be a 2-elements tuple or list representing the position in the geometry's plane'''
-
+        
+        
         if(center is None):
-            center = (0, 0)
+            c = (0, 0)
         if not isinstance(entities, list):
             entities = [entities]
         names = [entity.name for entity in entities]
 
         for name in names:
-            # We need to find in which workplane the object was created
-            if self._get_suffix(name) in self.main_wp_entities:
-                wp = self.main_wp
-            else:
-                wp = self.mesh_port_wp
+            # If object in dictionnary and center of rotation is (0, 0) then
+            # just add the rotation to the initial object
+            if name in self.objects.keys() and center is None:
+                obj = self.objects[name]
+                obj.set("rot", angle)
+                print(f'{name} rotation (angle {angle})')
+                
+            else:  # otherwise add a rotation comsol object              
+               # We need to find in which workplane the object was created
+                if self._get_suffix(name) in self.main_wp_entities:
+                    wp = self.main_wp
+                else:
+                    wp = self.mesh_port_wp
 
-            if name in self.deleted_entities:
-                print('{} not translated, must have been deleted by union'.format(name))
-            else:
-                rot_name = self._new_transform_name(name)
-                rot = wp.geom().create(rot_name, "Rotate")
-                rot.set("rot", angle)
-                rot.setIndex("pos", self._comsol_str(center[0]), 0)
-                rot.setIndex("pos", self._comsol_str(center[1]), 1)
-                rot.selection("input").set(self._penultimate_transform_name(name))
-                print('{} rotated ({})'.format(name, rot_name))
+                if name in self.deleted_entities:
+                    print(f'{name} not translated, must have been deleted by union')
+                else:
+                    rot_name = self._new_transform_name(name)
+                    rot = wp.geom().create(rot_name, "Rotate")
+                    rot.set("rot", angle)
+                    rot.setIndex("pos", self._sympy_to_comsol_str(c[0]), 0)
+                    rot.setIndex("pos", self._sympy_to_comsol_str(c[1]), 1)
+                    rot.selection("input").set(self._penultimate_transform_name(name))
+                    print(f'{name} rotated ({rot_name})')
 
 
     def translate(self, entities, vector):
@@ -498,23 +504,33 @@ class ComsolModeler():
             raise Exception('Translations outside of main workplane not implemented yet in Comsol mode')
 
         for name in names:
-            # We need to find in which workplane the object was created
-            if self._get_suffix(name) in self.main_wp_entities:
-                wp = self.main_wp
-            else:
-                wp = self.mesh_port_wp
+            # If object in dictionnary then
+            # just add the translation to the initial object
+            if name in self.objects.keys():
+                obj = self.objects[name]
+                #obj.setIndex("pos", )
+                print(f'{name} translation')
+                
+            else:  # otherwise add a translation comsol object   
+                # We need to find in which workplane the object was created
+                if self._get_suffix(name) in self.main_wp_entities:
+                    wp = self.main_wp
+                else:
+                    wp = self.mesh_port_wp
 
-            if name in self.deleted_entities:
-                print('{} not translated, must have been deleted by union'.format(name))
-            else:
-                trans_name = self._new_transform_name(name)
-                trans = wp.geom().create(trans_name, "Move")
-                trans.selection("input").set(self._penultimate_transform_name(name))
-                self.model.param("inter_params").set("{}_x".format(trans_name), self._comsol_str(vector[0]))
-                self.model.param("inter_params").set("{}_y".format(trans_name), self._comsol_str(vector[1]))
-                trans.setIndex("displ", "{}_x".format(trans_name), 0)
-                trans.setIndex("displ", "{}_y".format(trans_name), 1)
-                print('{} translated ({})'.format(name, trans_name))
+                if name in self.deleted_entities:
+                    print(f'{name} not translated, must have been deleted by union')
+                else:
+                    trans_name = self._new_transform_name(name)
+                    trans = wp.geom().create(trans_name, "Move")
+                    trans.selection("input").set(self._penultimate_transform_name(name))
+                    self.model.java.param("inter_params").set(f"{trans_name}_x",
+                                                              self._sympy_to_comsol_str(vector[0]))
+                    self.model.java.param("inter_params").set(f"{trans_name}_y",
+                                                              self._sympy_to_comsol_str(vector[1]))
+                    trans.setIndex("displ", f"{trans_name}_x", 0)
+                    trans.setIndex("displ", f"{trans_name}_y", 1)
+                    print(f'{name} translated ({trans_name})')
 
 
     def delete(self, entity):
@@ -596,7 +612,7 @@ class ComsolModeler():
                 wp = self.mesh_port_wp
             fillet_name = self._new_transform_name(entity.name)
             fillet = wp.geom().create(fillet_name, "Fillet")
-            fillet.set("radius", self._comsol_str(radius))
+            fillet.set("radius", self._sympy_to_comsol_str(radius))
             ii = 1
             while True:
                 try:
@@ -646,10 +662,27 @@ class ComsolModeler():
 
         return wp
 
+    @staticmethod
+    def _sympy_to_comsol_str(*args):
+        """Input argument: Sympy expressions. Output argument: string corresponding
+        to the input expression where the power ** has been replaced with ^"""
+        strings = [str(sympy_expr) for sympy_expr in args]
+        return [s.replace("**", "^") for s in strings]
 
-    def _comsol_str(self, sympy_expr):
-        string = str(sympy_expr)
-        return string.replace("**", "^")
+
+    @staticmethod
+    def _make_3D(*args):
+        """Adds a zero to 2D input lists representing 2D vectors. Does nothing
+        to 3D vectors."""
+        for vec in args:
+            vec.append(0) if len(vec)==2 else None
+        return args
+    
+    def _make_positiv(self, pos, dim):
+        if self.model.parameter(dim, evaluate=True) < 0:
+            dim = "-(" + dim +")"
+            pos = pos + "+" + dim
+        return pos, dim
 
 
 #######################################
