@@ -476,11 +476,7 @@ class ComsolModeler():
                 print(f'{name} rotation (angle {angle})')
                 
             else:  # otherwise add a rotation comsol object              
-               # We need to find in which workplane the object was created
-                if self._get_suffix(name) in self.main_wp_entities:
-                    wp = self.main_wp
-                else:
-                    wp = self.mesh_port_wp
+                wp = self._find_workplane(name)
 
                 if name in self.deleted_entities:
                     print(f'{name} not translated, must have been deleted by union')
@@ -512,11 +508,7 @@ class ComsolModeler():
                 print(f'{name} translation')
                 
             else:  # otherwise add a translation comsol object   
-                # We need to find in which workplane the object was created
-                if self._get_suffix(name) in self.main_wp_entities:
-                    wp = self.main_wp
-                else:
-                    wp = self.mesh_port_wp
+                wp = self._find_workplane(name)
 
                 if name in self.deleted_entities:
                     print(f'{name} not translated, must have been deleted by union')
@@ -537,11 +529,7 @@ class ComsolModeler():
         if entity.name in self.deleted_entities:
             print("{} already deleted".format(entity.name))
         else:
-            # We need to find in which workplane the object was created
-            if self._get_suffix(entity.name) in self.main_wp_entities:
-                wp = self.main_wp
-            else:
-                wp = self.mesh_port_wp
+            wp = self._find_workplane(entity.name)
 
             del_name = "del_{}".format(entity.name)
             delete = wp.geom().create(del_name, "Delete")
@@ -561,10 +549,7 @@ class ComsolModeler():
 
         # We need to find in which workplane the object was created
         # We assume that the user does not want to unite objects from different layers (which would make no sense)
-        if self._get_suffix(entities[0].name) in self.main_wp_entities:
-            wp = self.main_wp
-        else:
-            wp = self.mesh_port_wp
+        wp = self._find_workplane(entities[0].name)
 
         union_name = self._new_transform_name(names[0])
         union = wp.geom().create(union_name, "Union")
@@ -606,10 +591,7 @@ class ComsolModeler():
         '''Filleting of a partial set on vertices not implemented yet
             All vertices are filleted with the same radius'''
         if vertex_indices is None:
-            if self._get_suffix(entity.name) in self.main_wp_entities:
-                wp = self.main_wp
-            else:
-                wp = self.mesh_port_wp
+            wp = self._find_workplane(entity.name)
             fillet_name = self._new_transform_name(entity.name)
             fillet = wp.geom().create(fillet_name, "Fillet")
             fillet.set("radius", self._sympy_to_comsol_str(radius))
@@ -735,3 +717,7 @@ class ComsolModeler():
                     ii += 1
             suffix = suffix[ii + 1:]
         return suffix
+    
+    def _find_workplane(self, name):
+    # We need to find in which workplane the object was created
+        return self.main_wp if self._get_suffix(name) in self.main_wp_entities else self.mesh_port_wp
