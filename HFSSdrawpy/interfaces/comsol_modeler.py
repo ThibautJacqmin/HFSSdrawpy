@@ -13,6 +13,7 @@ Next things to do :
 import mph
 from pathlib import Path
 import os
+import os.path as osp
 import subprocess
 import signal
 from collections import namedtuple 
@@ -40,9 +41,9 @@ class ComsolModeler():
         self._number_of_cores = number_of_cores
         
         # Run server
-        self.server = mph.Server(cores=number_of_cores)
+        #### self.server = mph.Server(cores=number_of_cores)
         self.server_port = 2036
-        print(f"Comsol server started listening on port {self.server_port}")
+        #### print(f"Comsol server started listening on port {self.server_port}")
         
         # Connect client to server
         self.client = mph.Client(cores=number_of_cores, 
@@ -52,15 +53,15 @@ class ComsolModeler():
         
         # Save current model
         if save_path is None:
-            self._save_path = str(Path.home().joinpath('MyModel.mph'))
-        self.pymodel = self.client.create(self.save_path)
+            self._save_path = osp.join(osp.dirname(__file__), "MyModel.mph") #str(Path.home().joinpath('MyModel.mph'))
+        #self.pymodel = self.client.create(self.save_path)
         # Saves in order to reload using the MPh library
-        self.pymodel.java.save(self.save_path)
+        ### self.pymodel.java.save(self.save_path)
         # Remove model from client before loading it again...
         # This is needed due to the way MpH works (model.py is instantiated
         # by loading a .mph file)
-        self.client.remove(self.pymodel)
-        print(f"Comsol model saved in {self.save_path}")
+        #self.client.remove(self.pymodel)
+        #print(f"Comsol model saved in {self.save_path}")
         
         # Start GUI
         if gui:
@@ -118,6 +119,7 @@ class ComsolModeler():
               File/Comsol Multiphysics server/import application from server""")                           
         
     def close_gui(self):
+        os.kill(self.p.pid, signal.CTRL_C_EVENT)
         os.killpg(os.getpgid(self.gui.pid), signal.SIGTERM)
         print("GUI closed")
                     
@@ -311,8 +313,11 @@ class ComsolModeler():
             pol.set("type", "open")
 
         for ii, point in enumerate(points):
-            pol.setIndex("table", self._sympy_to_comsol_str(point[0]), ii, 0)
-            pol.setIndex("table", self._sympy_to_comsol_str(point[1]), ii, 1)
+            #pol.setIndex("table", self._sympy_to_comsol_str(point[0]), ii, 0)
+            #pol.setIndex("table", self._sympy_to_comsol_str(point[1]), ii, 1)
+            import jpype
+            pol.setIndex("table", self._sympy_to_comsol_str(point[0])[0], jpype.JInt(ii), 0)
+            pol.setIndex("table", self._sympy_to_comsol_str(point[1])[0], jpype.JInt(ii), 1)
 
         print('Polygon {} created'.format(polygon_name))
 
@@ -436,6 +441,29 @@ class ComsolModeler():
 
         return path_name
 
+    def copy(self, entity):
+        name = entity.name
+        #wp = self._find_workplane(name)
+
+        if name in self.deleted_entities:
+            print(f'{name} not copied, must have been deleted by union')
+        else:
+            trans_name = gen_name(name) ### self._new_transform_name(name)
+            wp = self._set_workplane(entity.layer, trans_name)
+            trans = wp.geom().create(trans_name, "Copy")
+            trans.selection("input").set(self._last_transform_name(name))
+            #self.model.java.param("inter_params").set(f"{trans_name}_x",
+            #                                          self._sympy_to_comsol_str(vector[0]))
+            #self.model.java.param("inter_params").set(f"{trans_name}_y",
+            #                                          self._sympy_to_comsol_str(vector[1]))
+            #trans.setIndex("displ", f"{trans_name}_x", 0)
+            #trans.setIndex("displ", f"{trans_name}_y", 1)
+            print(f'{name} copy ({trans_name})')
+        
+        
+        #wp.geom().run()
+        return trans
+
 
     def wirebond(self, pos, ori, ymax, ymin, height='0.1mm', **kwargs):
         print("Wirebond should be drawn, not implemented yet")
@@ -484,8 +512,9 @@ class ComsolModeler():
                     rot_name = self._new_transform_name(name)
                     rot = wp.geom().create(rot_name, "Rotate")
                     rot.set("rot", angle)
-                    rot.setIndex("pos", self._sympy_to_comsol_str(c[0]), 0)
-                    rot.setIndex("pos", self._sympy_to_comsol_str(c[1]), 1)
+                    print(self._sympy_to_comsol_str(c[0]))
+                    rot.setIndex("pos", self._sympy_to_comsol_str(c[0])[0], 0)
+                    rot.setIndex("pos", self._sympy_to_comsol_str(c[1])[0], 1)
                     rot.selection("input").set(self._penultimate_transform_name(name))
                     print(f'{name} rotated ({rot_name})')
 
@@ -502,27 +531,30 @@ class ComsolModeler():
         for name in names:
             # If object in dictionnary then
             # just add the translation to the initial object
-            if name in self.objects.keys():
-                obj = self.objects[name]
-                #obj.setIndex("pos", )
-                print(f'{name} translation')
+            #if name in self.objects.keys():
+            #    obj = self.objects[name]
+            #    # obj.setIndex("pos", )
+            #    print(f'{name} translation')
                 
-            else:  # otherwise add a translation comsol object   
-                wp = self._find_workplane(name)
+            #else:  # otherwise add a translation comsol object   
+            wp = self._find_workplane(name)
 
-                if name in self.deleted_entities:
-                    print(f'{name} not translated, must have been deleted by union')
-                else:
-                    trans_name = self._new_transform_name(name)
-                    trans = wp.geom().create(trans_name, "Move")
-                    trans.selection("input").set(self._penultimate_transform_name(name))
-                    self.model.java.param("inter_params").set(f"{trans_name}_x",
-                                                              self._sympy_to_comsol_str(vector[0]))
-                    self.model.java.param("inter_params").set(f"{trans_name}_y",
-                                                              self._sympy_to_comsol_str(vector[1]))
-                    trans.setIndex("displ", f"{trans_name}_x", 0)
-                    trans.setIndex("displ", f"{trans_name}_y", 1)
-                    print(f'{name} translated ({trans_name})')
+            if name in self.deleted_entities:
+                print(f'{name} not translated, must have been deleted by union')
+            else:
+                trans_name = self._new_transform_name(name)
+                print("trans_name=", trans_name)
+                trans = wp.geom().create(trans_name, "Move")
+                trans.selection("input").set(self._penultimate_transform_name(name))
+                #self.model.java.param("inter_params").set(f"{trans_name}_x",
+                #                                          self._sympy_to_comsol_str(vector[0]))
+                #self.model.java.param("inter_params").set(f"{trans_name}_y",
+                #                                          self._sympy_to_comsol_str(vector[1]))
+                #trans.setIndex("displ", f"{trans_name}_x", 0)
+                #trans.setIndex("displ", f"{trans_name}_y", 1)
+                trans.set("displx", *self._sympy_to_comsol_str(vector[0]))
+                trans.set("disply", *self._sympy_to_comsol_str(vector[1]))
+                print(f'{name} translated ({trans_name})')
 
 
     def delete(self, entity):
@@ -586,7 +618,6 @@ class ComsolModeler():
             if not keep_originals:
                 self.deleted_entities.extend(tool_names)
 
-
     def fillet(self, entity, radius, vertex_indices=None):
         '''Filleting of a partial set on vertices not implemented yet
             All vertices are filleted with the same radius'''
@@ -594,7 +625,7 @@ class ComsolModeler():
             wp = self._find_workplane(entity.name)
             fillet_name = self._new_transform_name(entity.name)
             fillet = wp.geom().create(fillet_name, "Fillet")
-            fillet.set("radius", self._sympy_to_comsol_str(radius))
+            fillet.set("radius", *self._sympy_to_comsol_str(radius))
             ii = 1
             while True:
                 try:
@@ -648,7 +679,7 @@ class ComsolModeler():
     def _sympy_to_comsol_str(*args):
         """Input argument: Sympy expressions. Output argument: string corresponding
         to the input expression where the power ** has been replaced with ^"""
-        strings = [str(sympy_expr) for sympy_expr in args]
+        strings = ["(" + str(sympy_expr) + ")" for sympy_expr in args]
         return [s.replace("**", "^") for s in strings]
 
 
