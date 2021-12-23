@@ -18,6 +18,7 @@ import subprocess
 import signal
 from collections import namedtuple 
 
+
 # Bizarre d'importer drawpylib dans hfssdrawpy
 import drawpylib.parameters as layer_ids
 from functools import wraps
@@ -26,7 +27,9 @@ from ..utils import parse_entry, val, Vector
 from ..core.entity import gen_name
 
 class ComsolModeler():
-
+    client = None
+    comsol_version = '5.6'
+    server_port = 2036
     def __init__(self, number_of_cores=1, save_path=None, gui=False):
         '''Comsol Modeler opens a Comsol server listening on port 2036
         and a comsol client connected to that server.
@@ -37,18 +40,28 @@ class ComsolModeler():
             File/Comsol Multiphysics server/import application from server            
          '''
 
-        self.comsol_version = '5.6'
         self._number_of_cores = number_of_cores
         
         # Run server
         #### self.server = mph.Server(cores=number_of_cores)
-        self.server_port = 2036
         #### print(f"Comsol server started listening on port {self.server_port}")
         
+        
         # Connect client to server
-        self.client = mph.Client(cores=number_of_cores, 
-                                 version=self.comsol_version, 
-                                 port=self.server_port)
+        if self.client is None:
+            try:
+                ComsolModeler.client = mph.Client(cores=number_of_cores, 
+                                          version=self.comsol_version, 
+                                          port=self.server_port)
+            except BaseException as e:
+                print(e)
+                raise RuntimeError(r"could not connect to server: browse to "
+                      r"C:\Program Files\COMSOL\COMSOL56\Multiphysics\COMSOL Launchers"
+                      r"and launch 'COMSOL Multiphysics Server 5.6'."
+                      r"You should also restart this Kernel before attempting to reconnect"
+                      r"Launch 'COMSOL Multiphysics Client 5.6' and connect to the same" 
+                      r"server to check your model in real time. Don't forget to import the"
+                      r"current application via file->COMSOL Multiphysics Server->Import application from server")
         print(f"Comsol client (v{self.comsol_version}) connected to server")
         
         # Save current model
@@ -63,12 +76,22 @@ class ComsolModeler():
         #self.client.remove(self.pymodel)
         #print(f"Comsol model saved in {self.save_path}")
         
+        
+        
         # Start GUI
         if gui:
             self.start_gui()
 
-        # Load model using Mph module      
-        self.model = self.client.load(self.save_path)
+        if len(self.client.models())==0:
+            self.model = self.client.load(self.save_path)
+        # Load model using Mph module  
+        self.model = self.client.models()[-1]
+        
+        ### Remove e
+        
+        ### self.model = self.client.load(self.save_path)
+        # 
+    
         
 
         self.deleted_entities = []
@@ -80,25 +103,44 @@ class ComsolModeler():
         # New trasnforms should always be applied to self._last_transfrom_name(name)
         self.transforms = {}
 
-        self.main_comp = self.model.java.component().create("main_comp", True)
-        self.main_comp.geom().create("main_geom", 3)
+        import com  ## can be done once the JVM has been started by instantiating mph.Client...
+        try:
+            self.main_comp = self.model.java.component().create("main_comp", True)
+        except com.comsol.util.exceptions.FlException as e:
+            pass
+        self.main_comp = self.model.java.component("main_comp")
+        
+        try:
+            self.main_comp.geom().create("main_geom", 3)
+        except com.comsol.util.exceptions.FlException as e:
+            pass
         self.main_geom = self.model.java.component("main_comp").geom("main_geom")
 
+        ## remove existing work_planes:
+        try:
+            self.main_geom.feature().remove("main_wp")
+        except com.comsol.util.exceptions.FlException as e:
+            pass
+        try:
+            self.main_geom.feature().remove("mesh_port_wp");
+        except com.comsol.util.exceptions.FlException as e:
+            pass
         #two workplanes are created : one for all physical components (main_wp) 
         # and one for MESH and PORT layers
         self.main_wp = self.main_geom.create("main_wp", "WorkPlane")
         self.main_wp_entities = []
         self.mesh_port_wp = self.main_geom.create("mesh_port_wp", "WorkPlane")
-        self.main_comp.mesh().create("main_mesh")
+        #self.main_comp.mesh().create("main_mesh")
 
         #PEC assignment is tricky, we create a selection "pec_sel" in the main wp,
         #and make it visible from the physics by setting "selplaneshow" to "on"
         #the boundaries belonging to pec_sel are then the input of a PEC in the physics
-        self.emw_physics = self.main_comp.physics().create("emw", "ElectromagneticWaves", "emw_geom")
-        self.pec = self.emw_physics.create("pec", "PerfectElectricConductor", 2)
-        self.pec_sel = self.main_wp.geom().selection().create("pec_sel", "CumulativeSelection")
-        self.main_wp.set("selplaneshow", "on")
-        self.pec.selection().named("main_geom_main_wp_pec_sel_bnd")
+        
+        #self.emw_physics = self.main_comp.physics().create("emw", "ElectromagneticWaves", "emw_geom")
+        #self.pec = self.emw_physics.create("pec", "PerfectElectricConductor", 2)
+        #self.pec_sel = self.main_wp.geom().selection().create("pec_sel", "CumulativeSelection")
+        #self.main_wp.set("selplaneshow", "on")
+        #self.pec.selection().named("main_geom_main_wp_pec_sel_bnd")
 
         #Comsol fails to read to long expressions, so we create intermediray parameters in a second table
         #elf.inter_params = self.model.java.param().group().create("inter_params")
@@ -557,7 +599,7 @@ class ComsolModeler():
                 print(f'{name} translated ({trans_name})')
 
 
-    def delete(self, entity):
+    def delete(self, entity, penultimate=False):
         if entity.name in self.deleted_entities:
             print("{} already deleted".format(entity.name))
         else:
@@ -566,7 +608,10 @@ class ComsolModeler():
             del_name = "del_{}".format(entity.name)
             delete = wp.geom().create(del_name, "Delete")
             delete.selection("input").init()
-            delete.selection("input").set(self._last_transform_name(entity.name))
+            if penultimate:
+                delete.selection("input").set(self._penultimate_transform_name(entity.name))
+            else:
+                delete.selection("input").set(self._last_transform_name(entity.name))
             self.deleted_entities.append(entity.name)
             print('{} deleted'.format(entity.name))
 
@@ -607,17 +652,30 @@ class ComsolModeler():
             wp = self.main_wp
         else:
             wp = self.mesh_port_wp
-
+            
         for name in blank_names:
             diff_name = self._new_transform_name(name)
             diff = wp.geom().create(diff_name, "Difference")
             if keep_originals:
                 diff.set("keep", "on")
+            else:
+                diff.set("keep", "off")
             diff.selection("input").set(name)
             diff.selection("input2").set(*tool_names)
             if not keep_originals:
                 self.deleted_entities.extend(tool_names)
-
+        for entity in blank_entities:
+            self.delete(entity, penultimate=True)
+                
+    def rename(self, entity, new_name):
+        wp = self._find_workplane(entity.name)
+        wp.geom().feature(entity.name).tag(new_name)
+        for i in range(1, self.transforms[entity.name]+1):
+            wp.geom().feature(f"t{i}_{entity.name}").tag(f"t{i}_{new_name}")
+        self.transforms[new_name] = self.transforms.pop(entity.name)
+        wp = self._set_workplane(entity.layer, new_name)
+        self.main_wp_entities.remove(entity.name)        
+            
     def fillet(self, entity, radius, vertex_indices=None):
         '''Filleting of a partial set on vertices not implemented yet
             All vertices are filleted with the same radius'''
