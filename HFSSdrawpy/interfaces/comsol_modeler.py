@@ -11,7 +11,6 @@ Next things to do :
 """
 
 import mph
-from pathlib import Path
 import os
 import os.path as osp
 import subprocess
