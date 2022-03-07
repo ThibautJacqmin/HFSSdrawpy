@@ -99,13 +99,31 @@ class Entity():
     def connect_faces(self, name, entity1, entity2):
         raise NotImplementedError()
 
-    def duplicate_along_line(self, vec):
-        # copy and translate the copy
-        vec = Vector(vec)
-        copy = self.copy()
-        copy.translate(vec)
-        return copy
-
+    def duplicate_along_line(self, vec, n=2):
+        print("so")
+        try: 
+            func = self.body.interface.duplicate_along_line
+        except AttributeError:
+            # copy and translate the copy
+            vec = Vector(vec)
+            copies = []
+            for i in range(n):
+                copy = self.copy(new_name=self.name + "_duplicate%i"%i)
+                copy.translate([(i+1)*coord for coord in vec])
+                copies.append(copy)
+            return copies
+        else:
+            copies = []
+            list_of_names = func(self, vec, n)
+            print(list_of_names)
+            print('yo')
+            for name in list_of_names:
+                copied = Entity(self.dimension, self.body,
+                             nonmodel=self.nonmodel, layer=self.layer,
+                             copy=self, name=name)
+                copies.append(copied)
+            return copies
+            
     def find_vertex(self):
         vertices = self.body.interface.get_vertices(self)
         return vertices
