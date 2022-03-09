@@ -85,6 +85,16 @@ class GdsModeler():
     def box_center(self, pos, size, **kwargs):
         pass
 
+    def text(self, pos, size, text, angle, horizontal, **kwargs):
+        pos, size = parse_entry(pos, size)
+        name = kwargs["name"]
+        layer = kwargs["layer"]
+
+        poly1 = gdspy.Text(text, size, pos, horizontal=horizontal, angle=angle, layer=layer)
+
+        self.gds_object_instances[name] = poly1
+        self.cell.add(poly1)
+
     def polyline(self, points, closed, **kwargs):
         #TODO sace of open path
         #size is the thickness of the polyline for gds, must be a 2D-list with idential elements
