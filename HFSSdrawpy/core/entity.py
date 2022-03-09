@@ -115,8 +115,8 @@ class Entity():
             return copies if n is not None else copies[0]
         else:
             copies = []
-            list_of_names = func(self, vec, nn)
-            print(list_of_names)
+            list_of_names = func(self, vec, nn+1)
+            print(f"list_of_names = {list_of_names}")
             # print('yo')
             for name in list_of_names:
                 copied = Entity(self.dimension, self.body,
