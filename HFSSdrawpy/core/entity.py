@@ -37,6 +37,9 @@ class Entity():
                                       self)
             self.is_boolean = copy.is_boolean
             self.is_fillet = copy.is_fillet
+        
+        self._names_used = []
+
     def __str__(self):
         return self.name
 
@@ -109,8 +112,14 @@ class Entity():
             vec = Vector(vec)
             copies = []
             for i in range(nn):
-                copy = self.copy(new_name=self.name + "_duplicate%i"%i)
+                copy = self.copy() #new_name=self.name + "_duplicate%i"%i)
                 copy.translate([(i+1)*coord for coord in vec])
+                ii = i
+                while ((self.name + "_duplicate%i"%ii) in self._names_used):
+                    ii+=1
+                self._names_used.append((self.name + "_duplicate%i"%ii))
+                copy.rename(self.name + "_duplicate%i"%ii)
+                
                 copies.append(copy)
             return copies if n is not None else copies[0]
         else:

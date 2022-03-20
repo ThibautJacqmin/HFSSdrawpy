@@ -27,7 +27,7 @@ from ..core.entity import gen_name
 
 class ComsolModeler():
     client = None
-    comsol_version = '5.6'
+    comsol_version = '6.0'
     server_port = 2036
     def __init__(self, number_of_cores=1, save_path=None, gui=False):
         '''Comsol Modeler opens a Comsol server listening on port 2036
@@ -127,8 +127,12 @@ class ComsolModeler():
         #two workplanes are created : one for all physical components (main_wp) 
         # and one for MESH and PORT layers
         self.main_wp = self.main_geom.create("main_wp", "WorkPlane")
+        self.main_geom.feature().move("main_wp", 0)
+
         self.main_wp_entities = []
         self.mesh_port_wp = self.main_geom.create("mesh_port_wp", "WorkPlane")
+        self.main_geom.feature().move("mesh_port_wp", 1)
+
         #self.main_comp.mesh().create("main_mesh")
 
         #PEC assignment is tricky, we create a selection "pec_sel" in the main wp,
@@ -146,6 +150,8 @@ class ComsolModeler():
 
         self.objects = {}
         self.main_geom.run()
+
+        
         
         
     def start_gui(self):
@@ -320,6 +326,33 @@ class ComsolModeler():
         print(f'Rectangle {rectangle_name} created')
 
         return rectangle_name
+    
+    @assert_name
+    def disk(self, pos, radius, axis, **kwargs):
+
+        disk_name = kwargs["name"]
+        layer = kwargs["layer"]
+    
+        
+        # Generate Comsol strings from Sympy expressions 
+        radius = self._sympy_to_comsol_str(radius)[0]
+        pos_x, pos_y = self._sympy_to_comsol_str(pos[0], pos[1])
+
+        #If the rectangle is in the MESH or PORT layer, it should be added to the specific workplane
+        wp = self._set_workplane(layer, disk_name)
+
+        disk = wp.geom().create(disk_name, "Circle")
+        disk.set("r", radius)
+        self.model.parameter(f"{disk_name}_pos_x", pos_x)
+        self.model.parameter(f"{disk_name}_pos_y", pos_y)
+        disk.setIndex("pos", f"{disk_name}_pos_x", 0)
+        disk.setIndex("pos", f"{disk_name}_pos_y", 1)
+        
+        self.objects[disk.tag()]=disk
+        
+        print(f'Disk {disk_name} created')
+
+        return disk_name
 
     @assert_name
     def rect_center(self, pos, size, **kwargs):
@@ -583,6 +616,7 @@ class ComsolModeler():
             if name in self.deleted_entities:
                 print(f'{name} not translated, must have been deleted by union')
             else:
+                # print("name=", name)
                 trans_name = self._new_transform_name(name)
                 print("trans_name=", trans_name)
                 trans = wp.geom().create(trans_name, "Move")
@@ -603,15 +637,16 @@ class ComsolModeler():
             print("{} already deleted".format(entity.name))
         else:
             wp = self._find_workplane(entity.name)
-
-            del_name = "del_{}".format(entity.name)
+            if penultimate:
+                name_to_del = self._penultimate_transform_name(entity.name)
+            else:
+                name_to_del = self._last_transform_name(entity.name)
+                self.deleted_entities.append(entity.name)
+            
+            del_name = "del_{}".format(name_to_del)
             delete = wp.geom().create(del_name, "Delete")
             delete.selection("input").init()
-            if penultimate:
-                delete.selection("input").set(self._penultimate_transform_name(entity.name))
-            else:
-                delete.selection("input").set(self._last_transform_name(entity.name))
-            self.deleted_entities.append(entity.name)
+            delete.selection("input").set(name_to_del)
             print('{} deleted'.format(entity.name))
 
     def unite(self, entities, keep_originals=False):
@@ -625,6 +660,7 @@ class ComsolModeler():
 
         # We need to find in which workplane the object was created
         # We assume that the user does not want to unite objects from different layers (which would make no sense)
+        print('unite : ', names)
         wp = self._find_workplane(entities[0].name)
 
         union_name = self._new_transform_name(names[0])
@@ -654,6 +690,7 @@ class ComsolModeler():
             
         for name in blank_names:
             diff_name = self._new_transform_name(name)
+            print("diff_name : ", diff_name)
             diff = wp.geom().create(diff_name, "Difference")
             if keep_originals:
                 diff.set("keep", "on")
@@ -663,6 +700,7 @@ class ComsolModeler():
             diff.selection("input2").set(*tool_names)
             if not keep_originals:
                 self.deleted_entities.extend(tool_names)
+
         for entity in blank_entities:
             self.delete(entity, penultimate=True)
                 
@@ -673,7 +711,7 @@ class ComsolModeler():
             wp.geom().feature(f"t{i}_{entity.name}").tag(f"t{i}_{new_name}")
         self.transforms[new_name] = self.transforms.pop(entity.name)
         wp = self._set_workplane(entity.layer, new_name)
-        self.main_wp_entities.remove(entity.name)        
+        self.main_wp_entities.remove(entity.name)       
             
     def fillet(self, entity, radius, vertex_indices=None):
         '''Filleting of a partial set on vertices not implemented yet
