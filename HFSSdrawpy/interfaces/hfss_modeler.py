@@ -1112,6 +1112,8 @@ class HfssModeler(COMWrapper):
         return entity_to_sweep.name
 
     def duplicate_along_line(self, entity, vec, n=2):
+        if len(vec)==2:
+            vec = list(vec) + [0]
         return self._modeler.DuplicateAlongLine(["NAME:Selections","Selections:=", entity.name,
                                           "NewPartsModelFlag:="	, "Model"],
                                         	["NAME:DuplicateToAlongLineParameters",
