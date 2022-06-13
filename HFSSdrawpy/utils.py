@@ -232,8 +232,17 @@ def rem_unit(other):
 def _val(elt):
     if isinstance(elt, (int, float, numpy.int64, numpy.float64, numpy.int32, numpy.float32)):
         return elt
+    elif isinstance(elt, dict):
+        return {k: _val(v) for k, v in elt.items()}
+    elif isinstance(elt, tuple):
+        return tuple(_val(v) for v in elt)
+    elif isinstance(elt, list):
+        return [_val(v) for v in elt]
     else:
         return float(elt.evalf(subs=variables))
+
+def single_val(etl)-> float:
+    return _val(etl)
 
 def val(*entries, marker=True):
     #should take a list of tuple of list... of int, float or str...

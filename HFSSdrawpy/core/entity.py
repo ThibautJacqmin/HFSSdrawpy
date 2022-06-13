@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import List, Union
 import numpy as np
 
 from ..parameters import DEFAULT
@@ -6,6 +8,7 @@ from ..utils import Vector, parse_entry, check_name, find_last_list, \
     add_to_corresponding_list, gen_name, val, general_remove
 
 class Entity():
+    """ Entity of th HFSS class """
     # this should be the objects we are handling on the python interface
     # each method of this class should act in return in HFSS/GDS when possible
     dict_instances = {}
@@ -70,7 +73,10 @@ class Entity():
 
     def copy(self, new_name=None):
         generated_name = gen_name(self.name)
-        self.body.interface.copy(self)
+        while generated_name in self.dict_instances:
+            generated_name = gen_name(generated_name)
+            
+        self.body.interface.copy(self, name=generated_name)
         copied = Entity(self.dimension, self.body,
                              nonmodel=self.nonmodel, layer=self.layer,
                              copy=self, name=generated_name)
@@ -99,7 +105,7 @@ class Entity():
     def connect_faces(self, name, entity1, entity2):
         raise NotImplementedError()
 
-    def duplicate_along_line(self, vec, n=None):
+    def duplicate_along_line(self, vec, n=None) -> Union[Entity, List[Entity]]:
         nn = 1 if n is None else n
         # print("soooo")
         try:
@@ -164,8 +170,8 @@ class Entity():
         return result_index, len(vertices), is_trigo
 
     def fillet(self, radius, vertex_indices=None):
-
-        assert (not self.is_fillet), 'Cannot fillet an already filleted entity'
+        # print(vertex_indices)
+        # assert (not self.is_fillet), 'Cannot fillet an already filleted entity'
 
         if self.body.mode == "comsol" and vertex_indices != None:
             return None

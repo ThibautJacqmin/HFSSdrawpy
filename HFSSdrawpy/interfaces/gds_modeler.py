@@ -15,6 +15,7 @@ TOLERANCE = 1e-8 # for arcs
 print("gdspy_version : ",gdspy.__version__)
 
 class GdsModeler():
+    """Class for generating GDS models"""
     gds_object_instances = {}
     gds_cells  = {}
     dict_units = {'km':1.0e3,'m':1.0,'cm':1.0e-2,'mm':1.0e-3}
@@ -51,9 +52,9 @@ class GdsModeler():
         else:
             raise ValueError('%s cell do not exist'%coor_sys)
 
-    def copy(self, entity):
+    def copy(self, entity, name=None):
         new_polygon = gdspy.copy(self.gds_object_instances[entity.name], 0, 0)
-        new_name = gen_name(entity.name)
+        new_name = name if name is not None else gen_name(entity.name)
         self.gds_object_instances[new_name] = new_polygon
         self.cell.add(new_polygon)
 
@@ -66,9 +67,8 @@ class GdsModeler():
             obj = self.gds_object_instances[instance]
             if isinstance(obj, gdspy.Polygon) or isinstance(obj, gdspy.PolygonSet):
                 self.gds_object_instances[instance] = obj.fracture(max_points=max_points, precision=1e-9)
-
         for cell_name in self.gds_cells.keys():
-            filename = file+'_%s.gds'%cell_name
+            filename = file+'_%s.gds'%cell_name if len(self.gds_cells.keys())>1 else f"{file}.gds"
             gdspy.write_gds(filename, cells=[cell_name],
                             unit=1.0, precision=1e-9)
 
