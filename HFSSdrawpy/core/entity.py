@@ -79,7 +79,8 @@ class Entity():
         while generated_name in self.dict_instances:
             generated_name = gen_name(generated_name)
             
-        self.body.interface.copy(self, name=generated_name)
+        #self.body.interface.copy(self, name=generated_name)
+        self.body.interface.copy(self)
         copied = Entity(self.dimension, self.body,
                              nonmodel=self.nonmodel, layer=self.layer,
                              copy=self, name=generated_name)
