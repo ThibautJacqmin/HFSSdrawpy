@@ -1,4 +1,5 @@
 import numpy as np
+import sympy
 import math
 
 from ..utils import Vector, \
@@ -171,16 +172,27 @@ class Port():
     def rotate_ports(ports, angle):
         if isinstance(angle, list):
             if len(angle)==2:
-                new_angle= np.math.atan2(np.linalg.det([[1,0],angle]),np.dot([1,0],angle))
+                #new_angle= np.math.atan2(np.linalg.det([[1,0],angle]),np.dot([1,0],angle))
+                new_angle = sympy.atan2(sympy.det(sympy.Matrix([[1,0],angle])),np.dot([1,0],angle))
                 new_angle= new_angle/np.pi*180
             else:
                 raise Exception("angle should be either a float or a 2-dim array")
         else :
             new_angle=angle
         rad = new_angle/180*np.pi
-        rotate_matrix = np.array([[np.cos(rad) ,np.sin(-rad)],[np.sin(rad) ,np.cos(rad)]])
+        rotate_matrix = np.array([[sympy.cos(rad) ,sympy.sin(-rad)],[sympy.sin(rad) ,sympy.cos(rad)]])
         for port in ports:
             port.ori = rotate_matrix.dot(port.ori[0:2])
             posx = port.pos[0]*math.cos(rad)+port.pos[1]*math.sin(-rad)
             posy = port.pos[0]*math.sin(rad)+port.pos[1]*math.cos(rad)
             port.pos = Vector([posx, posy])
+            '''try:
+                port.ori = rotate_matrix.dot(port.ori[0:2])
+                posx = port.pos[0]*math.cos(rad)+port.pos[1]*math.sin(-rad)
+                posy = port.pos[0]*math.sin(rad)+port.pos[1]*math.cos(rad)
+                port.pos = Vector([posx, posy])
+            except TypeError:
+                port.ori = rotate_matrix.dot(port.ori[0:2])
+                posx = port.pos[0]*sympy.cos(rad)+port.pos[1]*sympy.sin(-rad)
+                posy = port.pos[0]*sympy.sin(rad)+port.pos[1]*sympy.cos(rad)
+                port.pos = Vector([posx, posy])'''
