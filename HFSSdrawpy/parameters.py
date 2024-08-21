@@ -15,3 +15,10 @@ RLC = 4
 MESH = 5
 PORT = 6
 BOND = 7
+
+# Parameters for Membrane gds
+
+BACKSIDE = 10
+FRONTSIDE_MEMBRANE = 11
+FRONTSIDE_SIN = 13
+FRONTSIDE_AL = 14
