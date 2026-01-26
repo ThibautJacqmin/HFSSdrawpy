@@ -346,6 +346,8 @@ def store_variable(symbol, value):  # put value in SI
             unit = FREQUENCY_UNIT
         if DIM_DIMENSIONLESS == extract_value_dim(value):
             unit = DIMENSIONLESS_UNIT
+        else:
+            raise ValueError(f"Unit is unknown for {value}")
         value = extract_value_unit(value, unit)
     variables[symbol] = value
 
