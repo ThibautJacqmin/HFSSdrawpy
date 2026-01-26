@@ -274,6 +274,10 @@ def _val(elt):
         return float(elt.evalf(subs=variables))
 
 
+def single_val(etl) -> float:
+    return _val(etl)
+
+
 def val(*entries, marker=True):
     # should take a list of tuple of list... of int, float or str...
     parsed = []

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import List, Union
+
 import numpy as np
 
 from ..parameters import DEFAULT
@@ -14,6 +18,8 @@ from ..utils import (
 
 
 class Entity:
+    """Entity of th HFSS class"""
+
     # this should be the objects we are handling on the python interface
     # each method of this class should act in return in HFSS/GDS when possible
     dict_instances = {}
@@ -55,6 +61,8 @@ class Entity:
             add_to_corresponding_list(copy, self.body.entities_to_move, self)
             self.is_boolean = copy.is_boolean
             self.is_fillet = copy.is_fillet
+
+        self._names_used = []
 
     def __str__(self):
         return self.name
@@ -159,12 +167,42 @@ class Entity:
     def connect_faces(self, name, entity1, entity2):
         raise NotImplementedError()
 
-    def duplicate_along_line(self, vec):
-        # copy and translate the copy
-        vec = Vector(vec)
-        copy = self.copy()
-        copy.translate(vec)
-        return copy
+    def duplicate_along_line(self, vec, n=None) -> Union[Entity, List[Entity]]:
+        nn = 1 if n is None else n
+        # print("soooo")
+        try:
+            func = self.body.interface.duplicate_along_line
+        except AttributeError:
+            # copy and translate the copy
+            vec = Vector(vec)
+            copies = []
+            for i in range(nn):
+                copy = self.copy()  # new_name=self.name + "_duplicate%i"%i)
+                copy.translate([(i + 1) * coord for coord in vec])
+                ii = i
+                while (self.name + "_duplicate%i" % ii) in self._names_used:
+                    ii += 1
+                self._names_used.append((self.name + "_duplicate%i" % ii))
+                copy.rename(self.name + "_duplicate%i" % ii)
+
+                copies.append(copy)
+            return copies if n is not None else copies[0]
+        else:
+            copies = []
+            list_of_names = func(self, vec, nn + 1)
+            print(f"list_of_names = {list_of_names}")
+            # print('yo')
+            for name in list_of_names:
+                copied = Entity(
+                    self.dimension,
+                    self.body,
+                    nonmodel=self.nonmodel,
+                    layer=self.layer,
+                    copy=self,
+                    name=name,
+                )
+                copies.append(copied)
+            return copies if n is not None else copies[0]
 
     def find_vertex(self):
         vertices = self.body.interface.get_vertices(self)
@@ -206,8 +244,13 @@ class Entity:
         return result_index, len(vertices), is_trigo
 
     def fillet(self, radius, vertex_indices=None):
+        # print(vertex_indices)
+        # assert (not self.is_fillet), 'Cannot fillet an already filleted entity'
 
         assert not self.is_fillet, "Cannot fillet an already filleted entity"
+        if self.body.mode == "comsol" and vertex_indices != None:
+            print("Warning: COMSOL only supports filleting all vertices. Ignoring.")
+            return self
 
         if vertex_indices is None:
             # filleting all vertices

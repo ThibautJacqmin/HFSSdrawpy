@@ -4,13 +4,15 @@ from gdspy import FlexPath
 
 from ..core.symmetry import compute_translation_rotation
 from ..parameters import DEFAULT
-from ..utils import Vector, parse_entry, val, points_on_line_tangent_to, check_name
+from ..utils import Vector, check_name, parse_entry, points_on_line_tangent_to, val
 
 TOLERANCE = 1e-9  # for arcs
 print("gdspy_version : ", gdspy.__version__)
 
 
 class GdsModeler:
+    """Class for generating GDS models"""
+
     gds_object_instances = {}
     gds_cells = {}
     dict_units = {"km": 1.0e3, "m": 1.0, "cm": 1.0e-2, "mm": 1.0e-3}
@@ -47,7 +49,7 @@ class GdsModeler:
         else:
             raise ValueError("%s cell do not exist" % coor_sys)
 
-    def copy(self, entity):
+    def copy(self, entity, name=None):
         new_polygon = gdspy.copy(self.gds_object_instances[entity.name], 0, 0)
         new_name = check_name(entity.__class__, entity.name)
         self.gds_object_instances[new_name] = new_polygon
@@ -94,6 +96,16 @@ class GdsModeler:
     def box_center(self, pos, size, **kwargs):
         pass
 
+    def text(self, pos, size, text, angle, horizontal, **kwargs):
+        pos, size = parse_entry(pos, size)
+        name = kwargs["name"]
+        layer = kwargs["layer"]
+
+        poly1 = gdspy.Text(text, size, pos, horizontal=horizontal, angle=angle, layer=layer)
+
+        self.gds_object_instances[name] = poly1
+        self.cell.add(poly1)
+
     def polyline(self, points, closed, **kwargs):
         # TODO sace of open path
         # size is the thickness of the polyline for gds, must be a 2D-list with idential elements
@@ -137,9 +149,7 @@ class GdsModeler:
         name = kwargs["name"]
         layer = kwargs["layer"]
 
-        poly1 = gdspy.Text(
-            text, size, pos, horizontal=horizontal, angle=angle, layer=layer
-        )
+        poly1 = gdspy.Text(text, size, pos, horizontal=horizontal, angle=angle, layer=layer)
 
         self.gds_object_instances[name] = poly1
         self.cell.add(poly1)
@@ -167,9 +177,7 @@ class GdsModeler:
         self.gds_object_instances[name] = round1
         self.cell.add(round1)
 
-    def wirebond(
-        self, pos, ori, ymax, ymin, height="0.1mm", **kwargs
-    ):  # ori should be normed
+    def wirebond(self, pos, ori, ymax, ymin, height="0.1mm", **kwargs):  # ori should be normed
         bond_diam = "20um"
         bond_pad = "150um"
         pos, ori, ymax, ymin, heigth, bond_diam, bond_pad = parse_entry(
@@ -377,9 +385,7 @@ class GdsModeler:
     def subtract(self, blank_entities, tool_entities, keep_originals=True):
         if isinstance(blank_entities, list):
             for blank_entity in blank_entities:
-                self.subtract(
-                    blank_entity, tool_entities, keep_originals=keep_originals
-                )
+                self.subtract(blank_entity, tool_entities, keep_originals=keep_originals)
         else:
             blank_entity = blank_entities
             # 1 We clear the cell of all elements and create lists to store the polygons
@@ -551,9 +557,7 @@ class GdsModeler:
             # if entity!=None:
             if not entity.esc:
                 gds_entity = self.gds_object_instances[entity.name]
-                gds_entity.rotate(
-                    angle / 360 * 2 * np.pi, center=(val(center[0]), val(center[1]))
-                )
+                gds_entity.rotate(angle / 360 * 2 * np.pi, center=(val(center[0]), val(center[1])))
 
     def mirror(self, entities, normal_vector_polar):
         if not isinstance(entities, list):
@@ -570,9 +574,7 @@ class GdsModeler:
                 points = gds_entity.points
                 mirrored_points = []
                 for point in points:
-                    dp, _ = compute_translation_rotation(
-                        point, np.zeros(2), normal_vector_polar
-                    )
+                    dp, _ = compute_translation_rotation(point, np.zeros(2), normal_vector_polar)
                     mirrored_point = point + dp
                     mirrored_points.append(mirrored_point)
                 mirrored_points = np.array(mirrored_points)

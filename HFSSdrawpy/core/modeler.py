@@ -52,8 +52,14 @@ class Modeler:
 
             self.interface = gds_modeler.GdsModeler()
             self.name = self.interface.package
+        elif mode == "comsol":
+            from ..interfaces import comsol_modeler
+
+            self.interface = comsol_modeler.ComsolModeler(
+                number_of_cores=1, save_path=None, gui=False
+            )
         else:
-            print("Mode should be either hfss or gds")
+            print("Mode should be either hfss, gds, or comsol")
 
         # default init for mask values (used to subtract holes from
         # critical areas)
@@ -89,6 +95,10 @@ class Modeler:
 
         if self.mode == "hfss":
             self.design.set_variable(name, value)  # for HFSS
+
+        if self.mode == "comsol":
+            self.interface.set_variable(name, value)  # for COMSOL
+
         symbol = sympy.symbols(name)
         store_variable(symbol, value)
         return symbol
@@ -139,9 +149,7 @@ class Modeler:
             entities = [main] + entities
 
         if len(entities) != 1:
-            if not all(
-                [entity.dimension == entities[0].dimension for entity in entities]
-            ):
+            if not all([entity.dimension == entities[0].dimension for entity in entities]):
                 raise TypeError(
                     "All united elements should have the \
                                 same dimension"
@@ -150,9 +158,7 @@ class Modeler:
                 if keep_originals:
                     entities[0] = entities[0].copy()
 
-                union_entity = self.interface.unite(
-                    entities, keep_originals=keep_originals
-                )
+                union_entity = self.interface.unite(entities, keep_originals=keep_originals)
                 union_entity.is_boolean = True
                 list_fillet = [entity.is_fillet for entity in entities]
                 union_entity.is_fillet = union_entity.is_fillet or any(list_fillet)
@@ -185,24 +191,16 @@ class Modeler:
             pass
         else:
             if not all(
-                [
-                    entity.dimension == blank_entities[0].dimension
-                    for entity in blank_entities
-                ]
+                [entity.dimension == blank_entities[0].dimension for entity in blank_entities]
             ) or not all(
-                [
-                    entity.dimension == tool_entities[0].dimension
-                    for entity in tool_entities
-                ]
+                [entity.dimension == tool_entities[0].dimension for entity in tool_entities]
             ):
                 raise TypeError(
                     "All subtracted elements should have the \
                                 same dimension"
                 )
             else:
-                self.interface.subtract(
-                    blank_entities, tool_entities, keep_originals=True
-                )
+                self.interface.subtract(blank_entities, tool_entities, keep_originals=True)
                 # actualize the properties of the blank_entities
                 list_fillet_bool = any([entity.is_fillet for entity in tool_entities])
                 for entity in blank_entities:
@@ -235,9 +233,7 @@ class Modeler:
     def rotate(self, entities, angle=0):
         if isinstance(angle, (list, np.ndarray)):
             if len(angle) == 2:
-                angle = np.arctan2(
-                    np.linalg.det([[1, 0], angle]), np.dot([1, 0], angle)
-                )
+                angle = np.arctan2(np.linalg.det([[1, 0], angle]), np.dot([1, 0], angle))
                 angle = angle / np.pi * 180
             else:
                 raise Exception("angle should be either a float or a 2-dim array")

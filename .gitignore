@@ -14,6 +14,13 @@ doc/
 
 # macOS specific
 .DS_Store
-
 # GDS specific
 *.gds
+# Subdirectories
+/build
+/dist
+/HFSSdrawpy.egg-info
+Pipfile
+Pipfile.lock
+/.vscode
+.idea/workspace.xml

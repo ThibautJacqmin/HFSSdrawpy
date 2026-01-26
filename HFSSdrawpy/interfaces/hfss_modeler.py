@@ -100,9 +100,7 @@ def make_float_prop(name, prop_tab=None, prop_server=None):
 
 
 def make_prop(name, prop_tab=None, prop_server=None, prop_args=None):
-    def set_prop(
-        self, value, prop_tab=prop_tab, prop_server=prop_server, prop_args=prop_args
-    ):
+    def set_prop(self, value, prop_tab=prop_tab, prop_server=prop_server, prop_args=prop_args):
         prop_tab = self.prop_tab if prop_tab is None else prop_tab
         prop_server = self.prop_server if prop_server is None else prop_server
         if isinstance(prop_tab, types.FunctionType):
@@ -413,9 +411,7 @@ class HfssDesign(COMWrapper):
         def set_freq(setup, freq_list, delta=max_delta_s):
             settings = ["NAME:MultipleAdaptiveFreqsSetup"]
             for i in freq_list:
-                settings.append(
-                    ["NAME:AdaptAt", "Frequency:=", "%sGHz" % i, "Delta:=", delta]
-                )
+                settings.append(["NAME:AdaptAt", "Frequency:=", "%sGHz" % i, "Delta:=", delta])
             self._setup_module.EditSetup(
                 setup, ["NAME:" + setup, "SolveType:=", "MultiFrequency", [settings]]
             )
@@ -586,11 +582,7 @@ class HfssDesign(COMWrapper):
         )
 
     def set_variable(self, name, value, postprocessing=False):
-        if (
-            name
-            not in self._design.GetVariables()
-            + self._design.GetPostProcessingVariables()
-        ):
+        if name not in self._design.GetVariables() + self._design.GetPostProcessingVariables():
             self.create_variable(name, value, postprocessing=postprocessing)
         else:
             self._design.SetVariableValue(name, value)
@@ -599,16 +591,10 @@ class HfssDesign(COMWrapper):
         return self._design.GetVariableValue(name)
 
     def get_variable_names(self):
-        return [
-            s
-            for s in self._design.GetVariables()
-            + self._design.GetPostProcessingVariables()
-        ]
+        return [s for s in self._design.GetVariables() + self._design.GetPostProcessingVariables()]
 
     def get_variables(self):
-        local_variables = (
-            self._design.GetVariables() + self._design.GetPostProcessingVariables()
-        )
+        local_variables = self._design.GetVariables() + self._design.GetPostProcessingVariables()
         return {lv: self.get_variable_value(lv) for lv in local_variables}
 
     def copy_design_variables(self, source_design):
@@ -637,10 +623,7 @@ class HfssDesign(COMWrapper):
         sub_exprs = {fs: self.get_variable_value(fs.name) for fs in sexp.free_symbols}
         return float(
             sexp.subs(
-                {
-                    fs: self._evaluate_variable_expression(e, units)
-                    for fs, e in sub_exprs.items()
-                }
+                {fs: self._evaluate_variable_expression(e, units) for fs, e in sub_exprs.items()}
             )
         )
 
@@ -958,9 +941,7 @@ class HfssEMDesignSolutions(HfssDesignSolutions):
         else:  # but rather (N,) ....
             pass
         if np.size(data[0, :]) == 6:  # checking if values for Q were saved
-            kappa_over_2pis = [
-                2 * float(ii) for ii in data[:, 3]
-            ]  # eigvalue=(omega-i*kappa/2)/2pi
+            kappa_over_2pis = [2 * float(ii) for ii in data[:, 3]]  # eigvalue=(omega-i*kappa/2)/2pi
             # so kappa/2pi = 2*Im(eigvalue)
         else:
             kappa_over_2pis = None
@@ -1315,8 +1296,7 @@ class HfssModeler(COMWrapper):
 
     def delete(self, entity):
         objects = [
-            self._modeler.GetObjectName(str(ii))
-            for ii in range(int(self._modeler.GetNumObjects()))
+            self._modeler.GetObjectName(str(ii)) for ii in range(int(self._modeler.GetNumObjects()))
         ]
         if entity.name in objects:
             self._modeler.Delete(["NAME:Selections", "Selections:=", entity.name])
@@ -1327,8 +1307,7 @@ class HfssModeler(COMWrapper):
 
     def delete_all_objects(self):
         objects = [
-            self._modeler.GetObjectName(str(ii))
-            for ii in range(int(self._modeler.GetNumObjects()))
+            self._modeler.GetObjectName(str(ii)) for ii in range(int(self._modeler.GetNumObjects()))
         ]
         self._modeler.Delete(self._selections_array(*objects))
 
@@ -1441,7 +1420,7 @@ class HfssModeler(COMWrapper):
         else:
             raise ValueError("Index out of range. Should be between 0 and 2")
             # axis = "X"  # FIXED: if index is negative
-            
+
         w_idx, h_idx = {"X": (1, 2), "Y": (2, 0), "Z": (0, 1)}[axis]
         name = self._modeler.CreateRectangle(
             [
@@ -1601,9 +1580,7 @@ class HfssModeler(COMWrapper):
         return name
 
     @assert_name
-    def wirebond(
-        self, pos, ori, ymax, ymin, height="0.1mm", **kwargs
-    ):  # ori should be normed
+    def wirebond(self, pos, ori, ymax, ymin, height="0.1mm", **kwargs):  # ori should be normed
         bond_diam = "20um"
         params = parse_entry(pos, ori, ymax, ymin, height, bond_diam)
         pos, ori, ymax, ymin, heigth, bond_diam = params
@@ -1746,9 +1723,9 @@ class HfssModeler(COMWrapper):
         entity_to_sweep.dimension += 1
         return entity_to_sweep.name
 
-    def duplicate_along_line(
-        self, entity, vec, n=2, new_obj=True, duplicate_assign=False
-    ):
+    def duplicate_along_line(self, entity, vec, n=2, new_obj=True, duplicate_assign=False):
+        if len(vec) == 2:
+            vec = list(vec) + [0]
         name = self._modeler.DuplicateAlongLine(
             [
                 "NAME:Selections",
@@ -2239,8 +2216,7 @@ class HfssModeler(COMWrapper):
     def get_vertices(self, entity):
         vertices_ids = self.get_vertex_ids(entity)
         return [
-            [*map(float, self._modeler.GetVertexPosition(vertex)[:2])]
-            for vertex in vertices_ids
+            [*map(float, self._modeler.GetVertexPosition(vertex)[:2])] for vertex in vertices_ids
         ]
 
     def get_edge_ids(self, entity):
@@ -2376,9 +2352,7 @@ class HfssModeler(COMWrapper):
 
     def rotate(self, entities, angle, center=None, axis="Z"):
         if center is not None:
-            raise Warning(
-                "HFSS modeler cannot handle roatation which are not around (0, 0)."
-            )
+            raise Warning("HFSS modeler cannot handle roatation which are not around (0, 0).")
             # angle_center = coor2angle(center[0], center[1])
         if not isinstance(entities, list):
             entities = [entities]
@@ -2444,9 +2418,7 @@ class HfssModeler(COMWrapper):
             entities = [entities]
 
         magnitude, orientation = normal_vector_polar
-        normal_vector_cartesian = magnitude * np.array(
-            [np.cos(orientation), np.sin(orientation)]
-        )
+        normal_vector_cartesian = magnitude * np.array([np.cos(orientation), np.sin(orientation)])
 
         names = [entity.name for entity in entities]
         selection_array = self._selections_array(*names)
@@ -2487,9 +2459,7 @@ class HfssModeler(COMWrapper):
         pass
 
     def set_units(self, units="m"):
-        self._modeler.SetModelUnits(
-            ["NAME:Units Parameter", "Units:=", units, "Rescale:=", False]
-        )
+        self._modeler.SetModelUnits(["NAME:Units Parameter", "Units:=", units, "Rescale:=", False])
 
     def subtract(self, blank_entities, tool_entities, keep_originals=False):
         blank_names = []
@@ -2509,9 +2479,7 @@ class HfssModeler(COMWrapper):
             selection_array, ["NAME:UniteParameters", "KeepOriginals:=", keep_originals]
         )
 
-    def subtract_with_names(
-        self, blank_entities_str, tool_entities_str, keep_originals=False
-    ):
+    def subtract_with_names(self, blank_entities_str, tool_entities_str, keep_originals=False):
         selection_array = [
             "NAME:Selections",
             "Blank Parts:=",
@@ -2970,9 +2938,7 @@ def get_report_arrays(name):
     return r.get_arrays()
 
 
-def load_HFSS_project(
-    proj_name, project_path, extension=".aedt"
-):  # aedt is for 2016 version
+def load_HFSS_project(proj_name, project_path, extension=".aedt"):  # aedt is for 2016 version
     """proj_name == None => get active.
     (make sure 2 run as admin)
     """
