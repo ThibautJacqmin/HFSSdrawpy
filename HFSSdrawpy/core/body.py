@@ -247,7 +247,7 @@ class Body(Modeler):
         return Entity(2, self, **kwargs)
 
     @set_body
-    def circle(self, radius, sections=12, name="circle_0", **kwargs):
+    def circle(self, radius, sections=48, name="circle_0", **kwargs):
         """
         Draws a circle - non-closed ploygon.
 
@@ -280,7 +280,7 @@ class Body(Modeler):
 
         if self.mode == "gds":
             p = val(p)
-        self.interface.polyline(p, name=name, closed=False)
+        self.interface.polyline(p, closed=True, **kwargs)
         return Entity(2, self, **kwargs)
 
     @set_body
@@ -291,8 +291,7 @@ class Body(Modeler):
         i = 0
         while i < len(points[:-1]):
             points_equal = [
-                equal_float(val(p0), val(p1))
-                for p0, p1 in zip(points[i], points[i + 1])
+                equal_float(val(p0), val(p1)) for p0, p1 in zip(points[i], points[i + 1])
             ]
             if all(points_equal):
                 points.pop(i)
