@@ -217,7 +217,7 @@ class Entity:
                 radius = val(radius)
             self.body.interface.fillet(self, radius)
             self.is_fillet = True
-            return None
+            return self
 
         if not isinstance(vertex_indices, list):
             vertex_indices = [vertex_indices]
@@ -242,8 +242,7 @@ class Entity:
             else:
                 nb_vertices = len(self.body.interface.get_vertex_ids(self))
         vertex_indices = [
-            [(index_start + ind) % nb_vertices for ind in index]
-            for index in vertex_indices
+            [(index_start + ind) % nb_vertices for ind in index] for index in vertex_indices
         ]
 
         radius = parse_entry(radius)
@@ -270,7 +269,7 @@ class Entity:
                 self.body.interface.fillet(self, rad, new_indices)
                 past_indices += append_indices
         self.is_fillet = True
-        return None
+        return self
 
     #
     #    def fille_edget(self, radius, edge_index):
