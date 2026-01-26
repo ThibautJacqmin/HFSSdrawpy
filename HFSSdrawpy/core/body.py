@@ -1,23 +1,16 @@
 from functools import wraps
+
 import numpy as np
 
+from ..parameters import BOND, DEFAULT, MASK, MESH, PORT
+from ..path_finding.path_finder import Path
+from ..path_finding.path_finder_auto import PathAuto
+from ..utils import Vector, check_name, equal_float, find_corresponding_list, parse_entry, val, way
 from .entity import Entity
 from .modeler import Modeler
 from .move import BodyMover
 from .port import Port
 from .symmetry import BodyMirror
-from ..parameters import DEFAULT, MESH, PORT, MASK, BOND
-from ..path_finding.path_finder import Path
-from ..path_finding.path_finder_auto import PathAuto
-from ..utils import (
-    Vector,
-    check_name,
-    equal_float,
-    find_corresponding_list,
-    parse_entry,
-    val,
-    way,
-)
 
 
 class Body(Modeler):
@@ -31,9 +24,7 @@ class Body(Modeler):
         else:
             rel_coor = parse_entry(rel_coor)
 
-        pm.interface.create_coor_sys(
-            coor_sys=name, rel_coor=rel_coor, ref_name=ref_name
-        )
+        pm.interface.create_coor_sys(coor_sys=name, rel_coor=rel_coor, ref_name=ref_name)
 
         self.pm = pm
         self.name = name
@@ -141,12 +132,8 @@ class Body(Modeler):
         pos_y = 0
         rotation_matrix = np.array([[1, 0], [0, 1]])
         for coor in self.cursors:
-            pos_x += np.matmul(
-                np.linalg.inv(rotation_matrix), np.array(val(coor[0]))[:-1]
-            )[0]
-            pos_y += np.matmul(
-                np.linalg.inv(rotation_matrix), np.array(val(coor[0]))[:-1]
-            )[1]
+            pos_x += np.matmul(np.linalg.inv(rotation_matrix), np.array(val(coor[0]))[:-1])[0]
+            pos_y += np.matmul(np.linalg.inv(rotation_matrix), np.array(val(coor[0]))[:-1])[1]
 
             # update rotation matrix
             new_matrix = np.array(
@@ -202,9 +189,7 @@ class Body(Modeler):
         return self.rect(pos, size, name=name, **kwargs)
 
     @set_body
-    def cylinder(
-        self, pos, radius, height, axis, segments=0, name="cylinder_0", **kwargs
-    ):
+    def cylinder(self, pos, radius, height, axis, segments=0, name="cylinder_0", **kwargs):
         pos, radius, height = parse_entry(pos, radius, height)
         name = check_name(Entity, name)
         kwargs["name"] = name
@@ -317,9 +302,7 @@ class Body(Modeler):
 
     @set_body
     #####draw arrays of rectangles with dimension (colums x row) with spacing given by a list [x_spacing,y_spacing]
-    def rect_array(
-        self, pos, size, columns, rows, spacing, name="rect_array_0", **kwargs
-    ):
+    def rect_array(self, pos, size, columns, rows, spacing, name="rect_array_0", **kwargs):
 
         pos, size, spacing = parse_entry(Vector(pos), Vector(size), spacing)
 
@@ -643,9 +626,7 @@ class Body(Modeler):
                     nonmodel=True,
                 )
 
-        result = Port(
-            self, name, pos, ori, widths, subnames, layers, offsets, constraint_port
-        )
+        result = Port(self, name, pos, ori, widths, subnames, layers, offsets, constraint_port)
         return [result]
 
     @move_port
@@ -803,14 +784,10 @@ class Body(Modeler):
 
                 # find and plot adaptor geometry
                 if reverse_adaptor:
-                    points, length_adaptor = ports[-1].r.compare(
-                        ports[0], self.pm, slope=slope
-                    )
+                    points, length_adaptor = ports[-1].r.compare(ports[0], self.pm, slope=slope)
                     index_modified = -1
                 else:
-                    points, length_adaptor = ports[0].compare(
-                        ports[-1], self.pm, slope=slope
-                    )
+                    points, length_adaptor = ports[0].compare(ports[-1], self.pm, slope=slope)
                     index_modified = 0
 
                 # plot adaptors
@@ -867,18 +844,14 @@ class Body(Modeler):
 
                 # if bond plot bonds
                 if is_bond:
-                    self.draw_bond(
-                        total_path.to_bond(), *ports[0].bond_params(), name=name + "_wb"
-                    )
+                    self.draw_bond(total_path.to_bond(), *ports[0].bond_params(), name=name + "_wb")
 
                 length = total_path.length() + length_adaptor
                 print('Cable "%s" length = %.3f mm' % (name, length * 1000))
                 return length
         else:
             if len(ports) > 2:
-                raise Exception(
-                    "Constraint_ports are not supported with slanted cables"
-                )
+                raise Exception("Constraint_ports are not supported with slanted cables")
             path = Path(name, ports[0], ports[1], fillet, is_slanted=True)
             cable = self.path(path.points, path.port_in, path.fillet, name=name)
             # assign mesh_size to the mesh layer in the new cable
@@ -1017,14 +990,10 @@ class Body(Modeler):
 
             # find and plot adaptor geometry
             if reverse_adaptor:
-                points, length_adaptor = ports[-1].r.compare(
-                    ports[0], self.pm, slope=slope
-                )
+                points, length_adaptor = ports[-1].r.compare(ports[0], self.pm, slope=slope)
                 index_modified = -1
             else:
-                points, length_adaptor = ports[0].compare(
-                    ports[-1], self.pm, slope=slope
-                )
+                points, length_adaptor = ports[0].compare(ports[-1], self.pm, slope=slope)
                 index_modified = 0
 
             # plot adaptors
@@ -1072,9 +1041,7 @@ class Body(Modeler):
             # check cable length
             length = val(total_path.length + length_adaptor)
             if target_length is not None:
-                if not equal_float(
-                    val(total_path.length + length_adaptor), val(target_length)
-                ):
+                if not equal_float(val(total_path.length + length_adaptor), val(target_length)):
                     print(
                         '/!\ Cable "%s" length = %.3f (!= %.3f) mm /!\ '
                         % (name, length * 1000, val(target_length) * 1000)
@@ -1115,9 +1082,7 @@ class Body(Modeler):
 
             return length
 
-    def draw_bond(
-        self, to_bond, ymax, ymin, min_dist="0.5mm", name="wb_0", type_bridge="bond"
-    ):
+    def draw_bond(self, to_bond, ymax, ymin, min_dist="0.5mm", name="wb_0", type_bridge="bond"):
         # to_bond list of segments
         ymax, ymin, min_dist = parse_entry(ymax, ymin, min_dist)
 
@@ -1196,9 +1161,7 @@ class Body(Modeler):
 
         return sublist
 
-    def clean_hole_array(
-        self, hole_array_result, hole_size="5um", tolerance=0.01, **kwargs
-    ):
+    def clean_hole_array(self, hole_array_result, hole_size="5um", tolerance=0.01, **kwargs):
         if self.mode == "gds":
             self.interface.clean_hole_array(
                 hole_array_result=hole_array_result,

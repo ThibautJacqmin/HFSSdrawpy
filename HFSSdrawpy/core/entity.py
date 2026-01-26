@@ -393,9 +393,7 @@ class Entity:
 
         r, l, c = rlc
 
-        self.body.interface.assign_lumped_rlc(
-            self, r, l, c, point_0, point_1, name="RLC"
-        )
+        self.body.interface.assign_lumped_rlc(self, r, l, c, point_0, point_1, name="RLC")
 
     def assign_lumped_port(self, points, **kwargs):
 
@@ -441,9 +439,7 @@ class Entity:
         # point_0 = origin + np.dot(point_0.as_nda(), change_matrix)
         # point_1 = origin + np.dot(point_1.as_nda(), change_matrix)
 
-        self.body.interface.assign_lumped_port(
-            self, point_0, point_1, name="lumped_port_0"
-        )
+        self.body.interface.assign_lumped_port(self, point_0, point_1, name="lumped_port_0")
 
     def mirrorZ(self):
         raise NotImplementedError()

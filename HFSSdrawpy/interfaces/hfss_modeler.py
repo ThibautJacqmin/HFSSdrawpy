@@ -1,11 +1,11 @@
 import atexit
-from distutils.core import setup
 import os
 import signal
 import tempfile
 import time
 import types
 from copy import copy
+from distutils.core import setup
 from functools import wraps
 from typing import Type
 
@@ -227,7 +227,7 @@ class HfssProject(COMWrapper):
 
     def make_active(self):
         self.parent.set_active_project(self.name)
-    
+
     def delete_design(self, name):
         self._project.DeleteDesign(name)
 
@@ -503,50 +503,54 @@ class HfssDesign(COMWrapper):
         max_value,
         n_values,
         name="Parametric sweep",
-        save_fields = True,
-        copy_mesh = True,
-        solved_with_copied_mesh_only = True
+        save_fields=True,
+        copy_mesh=True,
+        solved_with_copied_mesh_only=True,
     ):
         self._optimetrics.InsertSetup(
             "OptiParametric",
             [
-		"NAME:"+name,
-		"IsEnabled:="		, True,
-		[
-			"NAME:ProdOptiSetupDataV2",
-			"SaveFields:="		, save_fields,
-			"CopyMesh:="		, copy_mesh,
-			"SolveWithCopiedMeshOnly:=", solved_with_copied_mesh_only
-		],
-		[
-			"NAME:StartingPoint"
-		],
-		"Sim. Setups:="		, [setup.name],
-		[
-			"NAME:Sweeps",
-			[
-				"NAME:SweepDefinition",
-				"Variable:="		, parameter.name,
-				"Data:="		, "LINC %smm %smm %s"%(min_value,max_value,n_values),
-				"OffsetF1:="		, False,
-				"Synchronize:="		, 0
-			]
-		],
-		[
-			"NAME:Sweep Operations"
-		],
-		[
-			"NAME:Goals"
-		]
-	])
+                "NAME:" + name,
+                "IsEnabled:=",
+                True,
+                [
+                    "NAME:ProdOptiSetupDataV2",
+                    "SaveFields:=",
+                    save_fields,
+                    "CopyMesh:=",
+                    copy_mesh,
+                    "SolveWithCopiedMeshOnly:=",
+                    solved_with_copied_mesh_only,
+                ],
+                ["NAME:StartingPoint"],
+                "Sim. Setups:=",
+                [setup.name],
+                [
+                    "NAME:Sweeps",
+                    [
+                        "NAME:SweepDefinition",
+                        "Variable:=",
+                        parameter.name,
+                        "Data:=",
+                        "LINC %smm %smm %s" % (min_value, max_value, n_values),
+                        "OffsetF1:=",
+                        False,
+                        "Synchronize:=",
+                        0,
+                    ],
+                ],
+                ["NAME:Sweep Operations"],
+                ["NAME:Goals"],
+            ],
+        )
 
     def delete_setup(self, name):
         if name in self.get_setup_names():
             self._setup_module.DeleteSetups(name)
 
-    def analyze_setup(self,setup):
+    def analyze_setup(self, setup):
         self._design.Analyze(setup.name)
-    
+
     def analyze_all(self):
         self._design.AnalyzeAllNominal()
 
@@ -668,43 +672,67 @@ class HfssDesign(COMWrapper):
 
     def Clear_Field_Clac_Stack(self):
         self._fields_calc.CalcStack("Clear")
-    
-    def plot_ComplexMag_E(self,setup,entity):
+
+    def plot_ComplexMag_E(self, setup, entity):
         module = self._design.GetModule("FieldsReporter")
         module.CreateFieldPlot(
             [
                 "NAME:ComplexMag_E1",
-                "SolutionName:="	, "%s : LastAdaptive"%setup.name,
-                "UserSpecifyName:="	, 0,
-                "UserSpecifyFolder:="	, 0,
-                "QuantityName:="	, "ComplexMag_E",
-                "PlotFolder:="		, "E Field",
-                "StreamlinePlot:="	, False,
-                "AdjacentSidePlot:="	, False,
-                "FullModelPlot:="	, False,
-                "IntrinsicVar:="	, "Phase=\'0deg\'",
-                "PlotGeomInfo:="	, [1,"Volume","ObjList",1,"%s"%entity.name],
-                "FilterBoxes:="		, [0],
+                "SolutionName:=",
+                "%s : LastAdaptive" % setup.name,
+                "UserSpecifyName:=",
+                0,
+                "UserSpecifyFolder:=",
+                0,
+                "QuantityName:=",
+                "ComplexMag_E",
+                "PlotFolder:=",
+                "E Field",
+                "StreamlinePlot:=",
+                False,
+                "AdjacentSidePlot:=",
+                False,
+                "FullModelPlot:=",
+                False,
+                "IntrinsicVar:=",
+                "Phase='0deg'",
+                "PlotGeomInfo:=",
+                [1, "Volume", "ObjList", 1, "%s" % entity.name],
+                "FilterBoxes:=",
+                [0],
                 [
                     "NAME:PlotOnVolumeSettings",
-                    "PlotIsoSurface:="	, True,
-                    "PointSize:="		, 1,
-                    "Refinement:="		, 0,
-                    "CloudSpacing:="	, 0.5,
-                    "CloudMinSpacing:="	, -1,
-                    "CloudMaxSpacing:="	, -1,
-                    "ShadingType:="		, 0,
+                    "PlotIsoSurface:=",
+                    True,
+                    "PointSize:=",
+                    1,
+                    "Refinement:=",
+                    0,
+                    "CloudSpacing:=",
+                    0.5,
+                    "CloudMinSpacing:=",
+                    -1,
+                    "CloudMaxSpacing:=",
+                    -1,
+                    "ShadingType:=",
+                    0,
                     [
                         "NAME:Arrow3DSpacingSettings",
-                        "ArrowUniform:="	, True,
-                        "ArrowSpacing:="	, 0,
-                        "MinArrowSpacing:="	, 0,
-                        "MaxArrowSpacing:="	, 0
-                    ]
+                        "ArrowUniform:=",
+                        True,
+                        "ArrowSpacing:=",
+                        0,
+                        "MinArrowSpacing:=",
+                        0,
+                        "MaxArrowSpacing:=",
+                        0,
+                    ],
                 ],
-                "EnableGaussianSmoothing:=", False
-            ], "Field")
-
+                "EnableGaussianSmoothing:=",
+                False,
+            ],
+            "Field",
+        )
 
 
 class HfssSetup(HfssPropertyObject):
@@ -925,9 +953,7 @@ class HfssEMDesignSolutions(HfssDesignSolutions):
         fn = tempfile.mktemp()
         self._solutions.ExportEigenmodes(self.parent.solution_name, lv, fn)
         data = np.loadtxt(fn, dtype="str")
-        if (
-            np.size(np.shape(data)) == 1
-        ):  # getting around the very annoying fact that
+        if np.size(np.shape(data)) == 1:  # getting around the very annoying fact that
             data = np.array([data])  # in Python a 1D array does not have shape (N,1)
         else:  # but rather (N,) ....
             pass
@@ -941,17 +967,17 @@ class HfssEMDesignSolutions(HfssDesignSolutions):
 
         freqs = [float(ii) for ii in data[:, 1]]
         return freqs, kappa_over_2pis
-    
+
     def eigenmodes_v2(self, setup, lv=""):
         # implemented because eigenmodes was bugged
         fn = tempfile.mktemp()
-        self._solutions.ExportEigenmodes("%s : LastAdaptive"%setup.name, lv, fn)
+        self._solutions.ExportEigenmodes("%s : LastAdaptive" % setup.name, lv, fn)
         data = np.loadtxt(fn, dtype="str")
         " data has the following structure:"
         "[ ['mode number' 'frequency' 'Q factor']"
         freqs = [float(ii) for ii in data[:, 1]]
-        if data[0,-1] == 0:
-            print('Q is non defined')
+        if data[0, -1] == 0:
+            print("Q is non defined")
         else:
             Qs = [float(ii) for ii in data[:, -1]]
         return freqs, Qs
@@ -1296,8 +1322,8 @@ class HfssModeler(COMWrapper):
             self._modeler.Delete(["NAME:Selections", "Selections:=", entity.name])
 
     def delete_with_names(self, str_names):
-            # eg "box0,box1,box2"
-            self._modeler.Delete(["NAME:Selections", "Selections:=", str_names])
+        # eg "box0,box1,box2"
+        self._modeler.Delete(["NAME:Selections", "Selections:=", str_names])
 
     def delete_all_objects(self):
         objects = [
@@ -1409,8 +1435,13 @@ class HfssModeler(COMWrapper):
         pos = parse_entry(pos)
         size = parse_entry(size)
         index = size.index(0)
-        if index >= 0:
+        # print("index", index)
+        if index >= 0 and index <= 2:
             axis = "XYZ"[index]
+        else:
+            raise ValueError("Index out of range. Should be between 0 and 2")
+            # axis = "X"  # FIXED: if index is negative
+            
         w_idx, h_idx = {"X": (1, 2), "Y": (2, 0), "Z": (0, 1)}[axis]
         name = self._modeler.CreateRectangle(
             [
@@ -1623,11 +1654,21 @@ class HfssModeler(COMWrapper):
 
     @assert_name
     def airbridge(
-        self, pos, ori, ymax, ymin, height="5um", airbridge_width = "30um", airbridge_pad= "30um", **kwargs
+        self,
+        pos,
+        ori,
+        ymax,
+        ymin,
+        height="5um",
+        airbridge_width="30um",
+        airbridge_pad="30um",
+        **kwargs,
     ):  # ori should be normed
         thickness = 200e-9
-        params = parse_entry(pos, ori, ymax, ymin, height, airbridge_width,airbridge_pad, thickness)
-        pos, ori, ymax, ymin, height, airbridge_width,airbridge_pad, thickness = params
+        params = parse_entry(
+            pos, ori, ymax, ymin, height, airbridge_width, airbridge_pad, thickness
+        )
+        pos, ori, ymax, ymin, height, airbridge_width, airbridge_pad, thickness = params
 
         bond1 = pos + ori.orth() * ymax
         length = ymax - ymin
@@ -1637,68 +1678,48 @@ class HfssModeler(COMWrapper):
         kwargs["material"] = "perfect conductor"
         kwargs["solve_inside"] = False
         kwargs["MaterialValue"] = kwargs["material"]
-        points=[
-            #x,y,z
-            (xpad, ypad, thickness/2),
+        points = [
+            # x,y,z
+            (xpad, ypad, thickness / 2),
             (
-                xpad + xdir * airbridge_pad/2,
-                ypad + ydir * airbridge_pad/2,
-                thickness/2
-                ),
+                xpad + xdir * airbridge_pad / 2,
+                ypad + ydir * airbridge_pad / 2,
+                thickness / 2,
+            ),
             (
-                xpad + xdir * (airbridge_pad/2 + length/10) ,
-                ypad + ydir * (airbridge_pad/2 + length/10) ,
-                thickness/2 + height
-                ),
+                xpad + xdir * (airbridge_pad / 2 + length / 10),
+                ypad + ydir * (airbridge_pad / 2 + length / 10),
+                thickness / 2 + height,
+            ),
             (
-                xpad + xdir * (length - (airbridge_pad/2 + length/10)) ,
-                ypad + ydir * (length - (airbridge_pad/2 + length/10)) ,
-                thickness/2 + height
-                ),
+                xpad + xdir * (length - (airbridge_pad / 2 + length / 10)),
+                ypad + ydir * (length - (airbridge_pad / 2 + length / 10)),
+                thickness / 2 + height,
+            ),
             (
-                xpad + xdir * (length - (airbridge_pad/2)) ,
-                ypad + ydir * (length - (airbridge_pad/2)) ,
-                thickness/2
-                ),
-            (
-                xpad + xdir * (length) ,
-                ypad + ydir * (length) ,
-                thickness/2
-                ),
-
+                xpad + xdir * (length - (airbridge_pad / 2)),
+                ypad + ydir * (length - (airbridge_pad / 2)),
+                thickness / 2,
+            ),
+            (xpad + xdir * (length), ypad + ydir * (length), thickness / 2),
         ]
-        name = self.polyline(
-            points=points,
-            closed=False,
-            **kwargs)
+        name = self.polyline(points=points, closed=False, **kwargs)
 
         self._modeler.oeditor.ChangeProperty(
             [
                 "NAME:AllTabs",
                 [
                     "NAME:Geometry3DCmdTab",
-                    [
-                        "NAME:PropServers",
-                        f"{name}:CreatePolyline:1"
-                    ],
+                    ["NAME:PropServers", f"{name}:CreatePolyline:1"],
                     [
                         "NAME:ChangedProps",
-                        [
-                            "NAME:Type",
-                            "Value:="		, "Rectangle"
-                        ],
-                        [
-                            "NAME:Width/Diameter",
-                            "Value:="		, thickness
-                        ],
-                        [
-                            "NAME:Height",
-                            "Value:="		, airbridge_width
-                        ]
-                    ]
-                ]
+                        ["NAME:Type", "Value:=", "Rectangle"],
+                        ["NAME:Width/Diameter", "Value:=", thickness],
+                        ["NAME:Height", "Value:=", airbridge_width],
+                    ],
+                ],
             ],
-            )
+        )
 
         return name
 
@@ -1765,11 +1786,14 @@ class HfssModeler(COMWrapper):
             ["NAME:IntersectParameters", "KeepOriginals:=", keep_originals],
         )
         return names[0]
-    
+
     def intersect_with_names(self, str_names, keep_originals=False):
         # eg "box0,box1"
-        self._modeler.Intersect(["NAME:Selections", "Selections:=", str_names],["NAME:IntersectParameters","KeepOriginals:=", keep_originals])
-	
+        self._modeler.Intersect(
+            ["NAME:Selections", "Selections:=", str_names],
+            ["NAME:IntersectParameters", "KeepOriginals:=", keep_originals],
+        )
+
     def scale(self, entity, factor, center=(0, 0)):
         pass
 
@@ -1858,13 +1882,13 @@ class HfssModeler(COMWrapper):
             ]
         )
 
-    def assign_perfect_E_faces(self,face_list,name):
+    def assign_perfect_E_faces(self, face_list, name):
         # get the face_list (tuple) you're interested in by using the get_face_ids function
         # face_list is the list of face numbers, eg: ('17655','17656')
         face_list = [int(i) for i in face_list]
         self._boundaries.AssignPerfectE(
             [
-                "NAME:PerfE_%s"%name,
+                "NAME:PerfE_%s" % name,
                 "Faces:=",
                 face_list,
                 "InfGroundPlane:=",
@@ -1872,17 +1896,16 @@ class HfssModeler(COMWrapper):
             ]
         )
 
-    def assign_perfect_with_names(self,str,name):
+    def assign_perfect_with_names(self, str, name):
         self._boundaries.AssignPerfectE(
             [
-                "NAME:PerfE_%s"%name,
+                "NAME:PerfE_%s" % name,
                 "Objects:=",
                 [str],
                 "InfGroundPlane:=",
                 False,
             ]
         )
-
 
     def assign_waveport(
         self,
@@ -2073,7 +2096,7 @@ class HfssModeler(COMWrapper):
 
     def create_object_from_face(self, entity):
         faces = list(self._modeler.GetFaceIDs(entity.name))
-        #faces.sort()
+        # faces.sort()
         face = faces[0]
         self._modeler.CreateObjectFromFaces(
             [
@@ -2082,15 +2105,15 @@ class HfssModeler(COMWrapper):
                 entity.name,
                 "NewPartsModelFlag:=",
                 "Unassigned",
-            ],t
-            [
+            ],
+            t[
                 "NAME:Parameters",
                 ["NAME:BodyFromFaceToParameters", "FacesToDetach:=", [int(face)]],
             ],
             ["CreateGroupsForNewObjects:=", False],
         )
         return entity.name + "_ObjectFromFace1"
-    
+
     def create_object_from_face_with_names(self, entity, str_names):
         # str_names = ['1209','1210'] ie associated number of the face.
         # Get the numbers with get_face_ids() function
@@ -2485,8 +2508,10 @@ class HfssModeler(COMWrapper):
         self._modeler.Subtract(
             selection_array, ["NAME:UniteParameters", "KeepOriginals:=", keep_originals]
         )
-    
-    def subtract_with_names(self, blank_entities_str, tool_entities_str, keep_originals=False):
+
+    def subtract_with_names(
+        self, blank_entities_str, tool_entities_str, keep_originals=False
+    ):
         selection_array = [
             "NAME:Selections",
             "Blank Parts:=",
@@ -2565,19 +2590,13 @@ class HfssModeler(COMWrapper):
             ["NAME:UniteParameters", "KeepOriginals:=", keep_originals],
         )
         return entities.pop(0)
-    
-    def unite_with_names(self,str_names,keep_originals = False):
+
+    def unite_with_names(self, str_names, keep_originals=False):
         self._modeler.Unite(
-        [
-		"NAME:Selections",
-		"Selections:="		, str_names
-        ], 
-        [
-            "NAME:UniteParameters",
-            "KeepOriginals:="	, keep_originals
-        ] 
+            ["NAME:Selections", "Selections:=", str_names],
+            ["NAME:UniteParameters", "KeepOriginals:=", keep_originals],
         )
-    
+
     def assign_impedance(self, entities, ResistanceSq, ReactanceSq, name="impedance"):
         if not isinstance(entities, list):
             entities = [entities]

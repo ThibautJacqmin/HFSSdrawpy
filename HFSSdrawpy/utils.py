@@ -164,9 +164,7 @@ def check_name(_class, name):
         number += 1
         new_name = radical + str(number)
     if new_name != name:
-        logging.info(
-            "%s: changed '%s' name into '%s'" % (_class.__name__, name, new_name)
-        )
+        logging.info("%s: changed '%s' name into '%s'" % (_class.__name__, name, new_name))
     return new_name
 
 
@@ -253,9 +251,7 @@ def rem_unit(other):
 
 
 def _val(elt):
-    if isinstance(
-        elt, (int, float, numpy.int64, numpy.float64, numpy.int32, numpy.float32)
-    ):
+    if isinstance(elt, (int, float, numpy.int64, numpy.float64, numpy.int32, numpy.float32)):
         return elt
     elif isinstance(elt, str) or isinstance(elt, pint.Quantity):
         dim = extract_value_dim(elt)
@@ -575,12 +571,9 @@ class Vector(numpy.ndarray):
             ortho = -other.cross(ref)
 
             return (
-                Vector([self.dot(other.refx()), self.dot(other.orth().refy()), 0])
-                * ref[2]
-                + Vector([self.dot(other.orth().refx()), 0, self.dot(other.refz())])
-                * ref[1]
-                + Vector([0, self.dot(other.refy()), self.dot(other.orth().refz())])
-                * ref[0]
+                Vector([self.dot(other.refx()), self.dot(other.orth().refy()), 0]) * ref[2]
+                + Vector([self.dot(other.orth().refx()), 0, self.dot(other.refz())]) * ref[1]
+                + Vector([0, self.dot(other.refy()), self.dot(other.orth().refz())]) * ref[0]
             )
         else:
             raise TypeError("other must be a Vector")
