@@ -336,15 +336,15 @@ def store_variable(symbol, value):  # put value in SI
     if isinstance(value, str):
         if DIM_LENGTH == extract_value_dim(value):
             unit = LENGTH_UNIT
-        if DIM_INDUCTANCE == extract_value_dim(value):
+        elif DIM_INDUCTANCE == extract_value_dim(value):
             unit = INDUCTANCE_UNIT
-        if DIM_CAPACITANCE == extract_value_dim(value):
+        elif DIM_CAPACITANCE == extract_value_dim(value):
             unit = CAPACITANCE_UNIT
-        if DIM_RESISTANCE == extract_value_dim(value):
+        elif DIM_RESISTANCE == extract_value_dim(value):
             unit = RESISTANCE_UNIT
-        if DIM_FREQUENCY == extract_value_dim(value):
+        elif DIM_FREQUENCY == extract_value_dim(value):
             unit = FREQUENCY_UNIT
-        if DIM_DIMENSIONLESS == extract_value_dim(value):
+        elif DIM_DIMENSIONLESS == extract_value_dim(value):
             unit = DIMENSIONLESS_UNIT
         else:
             raise ValueError(f"Unit is unknown for {value}")
