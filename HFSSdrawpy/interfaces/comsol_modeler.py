@@ -27,7 +27,7 @@ from ..utils import Vector, parse_entry, val
 
 class ComsolModeler:
     client = None
-    comsol_version = "6.0"
+    comsol_version = "6.4"
     server_port = 2036
 
     def __init__(self, number_of_cores=1, save_path=None, gui=False):
