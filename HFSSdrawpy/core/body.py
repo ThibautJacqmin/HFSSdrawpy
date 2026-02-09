@@ -57,57 +57,6 @@ class Body(Modeler):
         """
         return BodyMirror(self, angle, magnitude)
 
-    # def __enter__(self):
-    #     print("enter(")
-    #     #1 We need to keep track of the entities created during the execution of a function
-    #     if self.entities_to_move is None:
-    #         self.entities_to_move = []
-    #     else:
-    #         find_last_list(self.entities_to_move).append([])
-
-    #     if self.ports_to_move is None:
-    #         self.ports_to_move = []
-    #     else:
-    #         find_last_list(self.ports_to_move).append([])
-
-    #     return self
-
-    # def __exit__(self, *exc):
-    #     print(")exit")
-    #     #4 We move the entity that were created by the last function
-    #     list_entities_new = find_last_list(self.entities_to_move)
-    #     list_ports_new = find_last_list(self.ports_to_move)
-    #     pos, angle = self.cursors[-1]
-
-    #     #5 We move the entities_to_move with the right operation
-    #     if len(list_entities_new)>0:
-    #         self.rotate(list_entities_new, angle=angle)
-    #         self.translate(list_entities_new, vector=[pos[0], pos[1], pos[2]])
-
-    #     if len(list_ports_new)>0:
-    #         Port.rotate_ports(list_ports_new, angle)
-    #         Port.translate_ports(list_ports_new, vector=[pos[0], pos[1], pos[2]])
-
-    #     #6 We empty a part of the 'to_move' lists
-    #     penultimate_entity_list = find_penultimate_list(self.entities_to_move)
-    #     if penultimate_entity_list:
-    #         a = penultimate_entity_list.pop(-1)
-    #         for entity in a:
-    #             penultimate_entity_list.append(entity)
-    #     else:
-    #         self.entities_to_move = None
-
-    #     penultimate_port_list = find_penultimate_list(self.ports_to_move)
-    #     if penultimate_port_list:
-    #         a = penultimate_port_list.pop(-1)
-    #         for entity in a:
-    #             penultimate_port_list.append(entity)
-    #     else:
-    #         self.ports_to_move = None
-
-    #     self.cursors.pop(-1)
-    #     return False
-
     def set_body(func):
         """
         Defines a wrapper/decorator which allows the user to always work in the coordinate system of the chosen chip.
@@ -186,7 +135,7 @@ class Body(Modeler):
         """
         pos, size = parse_entry(pos, size)
         pos = [p - s / 2 for p, s in zip(pos, size)]
-        return self.rect(pos, size, name=name, **kwargs)
+        return self.box(pos, size, name=name, **kwargs)
 
     @set_body
     def cylinder(self, pos, radius, height, axis, segments=0, name="cylinder_0", **kwargs):
@@ -488,19 +437,33 @@ class Body(Modeler):
         elif self.mode == "comsol":
             ori = port.ori
             pos = port.pos
+            print("\n\n\n\n\n", set(port.layers))
+            path_entity = {
+                layer: self.polyline(points, closed=False, layer=layer, name=name).fillet(fillet)
+                for layer in set(port.layers)
+            }
 
             for ii in range(port.N):
                 offset = port.offsets[ii]
                 width = port.widths[ii]
                 subname = port.subnames[ii]
                 layer = port.layers[ii]
-                path_name = name + "_" + subname + "_path"
-                self.interface.sweep_along_path(
-                    points, ori, pos, width, fillet, path_name, **kwargs
-                )  # /!\ Need to add offset
-                entity = Entity(2, self, layer=layer, name=path_name)
+                path_name = check_name(Entity, name + "_" + subname + "_path")
+                offseted_name = self.interface.offset(
+                    layer=layer,
+                    path=path_entity[layer],
+                    distance=offset,
+                    name=path_name,
+                )
+                entity = Entity(2, self, layer=layer, name=offseted_name)
+                self.interface.thicken(
+                    thickness=width,
+                    path=entity,
+                    layer=layer,
+                )
                 model_entities.append(entity)
-                # here the path is added to the entities, not the port -> problem ?
+            for path in path_entity.values():
+                path.delete()
 
         return model_entities
 

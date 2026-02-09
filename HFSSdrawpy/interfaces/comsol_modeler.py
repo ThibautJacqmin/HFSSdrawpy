@@ -16,11 +16,12 @@ import signal
 import subprocess
 from collections import namedtuple
 from functools import wraps
+from xml.parsers.expat import model
 
-# Bizarre d'importer drawpylib dans hfssdrawpy
-import drawpylib.parameters as layer_ids
 import mph
 
+# Bizarre d'importer drawpylib dans hfssdrawpy
+from .. import parameters as layer_ids
 from ..core.entity import gen_name
 from ..utils import Vector, parse_entry, val
 
@@ -107,24 +108,24 @@ class ComsolModeler:
         try:
             self.main_comp = self.model.java.component().create("main_comp", True)
         except com.comsol.util.exceptions.FlException as e:
-            pass
+            print("Component main_comp already exists")
         self.main_comp = self.model.java.component("main_comp")
 
         try:
             self.main_comp.geom().create("main_geom", 3)
         except com.comsol.util.exceptions.FlException as e:
-            pass
+            print("Geometry main_geom already exists")
         self.main_geom = self.model.java.component("main_comp").geom("main_geom")
 
         ## remove existing work_planes:
         try:
             self.main_geom.feature().remove("main_wp")
         except com.comsol.util.exceptions.FlException as e:
-            pass
+            print("No main_wp to remove")
         try:
             self.main_geom.feature().remove("mesh_port_wp")
         except com.comsol.util.exceptions.FlException as e:
-            pass
+            print("No mesh_port_wp to remove")
         # two workplanes are created : one for all physical components (main_wp)
         # and one for MESH and PORT layers
         self.main_wp = self.main_geom.create("main_wp", "WorkPlane")
@@ -140,9 +141,11 @@ class ComsolModeler:
         # and make it visible from the physics by setting "selplaneshow" to "on"
         # the boundaries belonging to pec_sel are then the input of a PEC in the physics
 
+        # This was the theory, for the moment let's just create the selection
+
         # self.emw_physics = self.main_comp.physics().create("emw", "ElectromagneticWaves", "emw_geom")
         # self.pec = self.emw_physics.create("pec", "PerfectElectricConductor", 2)
-        # self.pec_sel = self.main_wp.geom().selection().create("pec_sel", "CumulativeSelection")
+        self.pec_sel = self.main_wp.geom().selection().create("pec_sel", "CumulativeSelection")
         # self.main_wp.set("selplaneshow", "on")
         # self.pec.selection().named("main_geom_main_wp_pec_sel_bnd")
 
@@ -200,6 +203,13 @@ class ComsolModeler:
     def save_path(self):
         return self._save_path
 
+    def evaluate(self, expr: str):
+        """
+        Evaluates a comsol expression and returns a float.
+        """
+        # We use the raw java interface here as mph doesn't implement this part of the comsol api yet
+        return self.model.java.param().evaluate(expr)
+
     def set_variable(self, name, value):
         """The parameter is added in the main param table, which is the only
         one that should be used in the GUI"""
@@ -249,41 +259,28 @@ class ComsolModeler:
         if len(size) == 2:
             size.append(0)
         pos = parse_entry(pos)
+        pos_strs = self._sympy_to_comsol_str(*pos)
         size = parse_entry(size)
+        size_strs = self._sympy_to_comsol_str(*size)
         name = kwargs["name"]
 
+        comsol_size = []
+        comsol_pos = []
+
         # Comsol does not support negative sizes, so this is dealt with here
-        if self.model.param().evaluate(self._sympy_to_comsol_str(size[0])) < 0:
-            size_0 = "-(" + self._sympy_to_comsol_str(size[0]) + ")"
-            pos_0 = self._sympy_to_comsol_str(pos[0]) + "+" + self._sympy_to_comsol_str(size[0])
-        else:
-            size_0 = self._sympy_to_comsol_str(size[0])
-            pos_0 = self._sympy_to_comsol_str(pos[0])
-
-        if self.model.param().evaluate(self._sympy_to_comsol_str(size[1])) < 0:
-            size_1 = "-(" + self._sympy_to_comsol_str(size[1]) + ")"
-            pos_1 = self._sympy_to_comsol_str(pos[1]) + "+" + self._sympy_to_comsol_str(size[1])
-        else:
-            size_1 = self._sympy_to_comsol_str(size[1])
-            pos_1 = self._sympy_to_comsol_str(pos[1])
-
-        if self.model.param().evaluate(self._sympy_to_comsol_str(size[2])) < 0:
-            size_2 = "-(" + self._sympy_to_comsol_str(size[2]) + ")"
-            pos_2 = self._sympy_to_comsol_str(pos[2]) + "+" + self._sympy_to_comsol_str(size[2])
-        else:
-            size_2 = self._sympy_to_comsol_str(size[2])
-            pos_2 = self._sympy_to_comsol_str(pos[2])
+        for i, s in enumerate(size_strs):
+            if self.evaluate(s) < 0:
+                comsol_size.append("-(" + size_strs[i] + ")")
+                comsol_pos.append(pos_strs[i] + "+" + size_strs[i])
+            else:
+                comsol_size.append(size_strs[i])
+                comsol_pos.append(pos_strs[i])
 
         box = self.main_geom.create(name, "Block")
-        box.setIndex("size", size_0, 0)
-        box.setIndex("size", size_1, 1)
-        box.setIndex("size", size_2, 2)
-
-        box = self.main_geom.create(name, "Block")
-        box.setIndex("pos", pos_0, 0)
-        box.setIndex("pos", pos_1, 1)
-        box.setIndex("pos", pos_2, 2)
-
+        for i, cs in enumerate(comsol_size):
+            box.setIndex("size", cs, i)
+        for i, cp in enumerate(comsol_pos):
+            box.setIndex("pos", cp, i)
         return name
 
     @assert_name
@@ -400,136 +397,28 @@ class ComsolModeler:
 
         return polygon_name
 
-    def sweep_along_path(
-        self, points, port_ori, port_pos, port_width, fillet_radius, path_name, **kwargs
-    ):
-        """This functionnality does not exist in Comsol, so the trick is the following:
-        - Create a new 3D geometry
-        - Create the line to be swept along in a xy workplane (polygon + fillet)
-        - Create a square of size "width" in an orthogonal workplane, in the right orientation and at the right position
-        - Sweep the square along the line to make a 3D object
-        - Import this 3D object in the main geometry
-        - Take the intersection (cross section) of this object in the main workplane
-        - Delete the 3D object"""
+    def sweep_along_path(self, **kwargs):
+        """This functionnality does not exist in Comsol, use thicken instead"""
+        raise NotImplementedError("sweep_along_path not implemented in Comsol mode")
 
-        layer = kwargs["layer"]
+    def thicken(self, layer, path, thickness):
+        name = path.name
+        wp = self._set_workplane(layer, name)
+        thicken_name = self._new_transform_name(name)
+        thicken = wp.geom().create(thicken_name, "Thicken2D")
 
-        comp_name = self._new_transform_name("path_generator")
-        geom_name = self._new_transform_name("line_geom")
-        wp_line_name = self._new_transform_name("wp_line")
-        line_name = self._new_transform_name("line")
-        wp_sq_name = self._new_transform_name("wp_sq")
-        import_name = self._new_transform_name("import")
-        cross_section_name = path_name
-        sweep_name = self._new_transform_name("sweep")
-        delete_name = self._new_transform_name("del")
+        thicken.selection("input").set(self._penultimate_transform_name(name))
+        thicken.set("totalthick", self._sympy_to_comsol_str(thickness)[0])
 
-        # We first create the geometry and the line's wp
-        comp = self.model.component().create(comp_name, True)
-        geom = comp.geom().create(geom_name, 3)
-        wp_line = geom.create(wp_line_name, "WorkPlane")
+    def offset(self, name, layer, path, distance):
+        wp = self._set_workplane(layer, path.name)
+        offset = wp.geom().create(name, "Offset")
+        offset.selection("input").set(self._last_transform_name(path.name))
+        offset.set("distance", self._sympy_to_comsol_str(distance)[0])
 
-        # Then the line is drawn in this wp
-        line = wp_line.geom().create(line_name, "Polygon")
-        line.set("source", "table")
-        line.set("type", "open")
-        nb_edges = 2 * len(points) - 3  # number of edges after filleting an open polygon
+        self.objects[offset.tag()] = offset
 
-        for ii, point in enumerate(points):
-            self.inter_params.set(
-                "{}_point_{}_x".format(line_name, str(ii)), self._sympy_to_comsol_str(point[0])
-            )
-            self.inter_params.set(
-                "{}_point_{}_y".format(line_name, str(ii)), self._sympy_to_comsol_str(point[1])
-            )
-            line.setIndex("table", "{}_point_{}_x".format(line_name, str(ii)), ii, 0)
-            line.setIndex("table", "{}_point_{}_y".format(line_name, str(ii)), ii, 1)
-
-        geom.run()
-
-        # The line is now being filleted
-        fillet_name = self._new_transform_name(line_name)
-        fillet = wp_line.geom().create(fillet_name, "Fillet")
-        fillet.set("radius", self._sympy_to_comsol_str(fillet_radius))
-        ii = 1
-        while True:
-            try:
-                fillet.selection("point").add(line_name, ii)
-                ii += 1
-                geom.run()
-            except:
-                break
-
-        # The orthogonal workplane is created, oriented and placed here
-        wp_sq = geom.create(wp_sq_name, "WorkPlane")
-
-        geom.run()
-
-        wp_sq.set("planetype", "normalvector")
-        self.inter_params.set(
-            "{}_port_ori_x".format(line_name), self._sympy_to_comsol_str(port_ori[0])
-        )
-        self.inter_params.set(
-            "{}_port_ori_y".format(line_name), self._sympy_to_comsol_str(port_ori[1])
-        )
-        wp_sq.setIndex("normalvector", "{}_port_ori_x".format(line_name), 0)
-        wp_sq.setIndex("normalvector", "{}_port_ori_y".format(line_name), 1)
-        wp_sq.setIndex("normalvector", "0", 2)
-
-        geom.run()
-
-        self.inter_params.set(
-            "{}_port_pos_x".format(line_name), self._sympy_to_comsol_str(port_pos[0])
-        )
-        self.inter_params.set(
-            "{}_port_pos_y".format(line_name), self._sympy_to_comsol_str(port_pos[1])
-        )
-        wp_sq.setIndex("normalcoord", "{}_port_pos_x".format(line_name), 0)
-        wp_sq.setIndex("normalcoord", "{}_port_pos_y".format(line_name), 1)
-        wp_sq.setIndex("normalcoord", "0", 2)
-
-        geom.run()
-
-        # A square is created at the origin
-        sq = wp_sq.geom().create("sq", "Square")
-        sq.set("base", "center")
-        sq.set("size", self._sympy_to_comsol_str(port_width))
-
-        geom.run()
-
-        # The square is swept along the line
-        sweep = geom.create(sweep_name, "Sweep")
-        sweep.set("smooth", "off")
-        sweep.set("keep", "off")
-        sweep.selection("face").set(wp_sq_name, 1)
-        for edge_idx in range(1, nb_edges + 1):
-            sweep.selection("edge").add(wp_line_name, edge_idx)
-
-        geom.run()
-
-        # The resulting 3D object is imported in the main geometry
-        _import = self.main_geom.create(import_name, "Import")
-        _import.set("type", "sequence")
-        _import.set("sequence", geom_name)
-        _import.importData()
-        self.main_geom.feature().move(import_name, 0)
-
-        wp = self._set_workplane(layer, path_name)
-
-        # The (2-dimensional) instersection is taken
-        cross_section = wp.geom().create(cross_section_name, "CrossSection")
-        cross_section.set("intersect", "selected")
-        cross_section.selection("input").set(import_name)
-
-        # We can now delete the 3D geometry
-        delete = self.main_geom.create(delete_name, "Delete")
-        delete.selection("input").init(3)
-        delete.selection("input").set(import_name, 1)
-        # /!\ We place the Delete action AFTER the main workplane in Comsol's chonology,
-        # otherwise the intersection cannot be taken
-        self.main_geom.feature().move(delete_name, self.transforms["import"] + 1)
-
-        return path_name
+        return name
 
     def copy(self, entity):
         name = entity.name
@@ -549,9 +438,7 @@ class ComsolModeler:
             # trans.setIndex("displ", f"{trans_name}_x", 0)
             # trans.setIndex("displ", f"{trans_name}_y", 1)
             print(f"{name} copy ({trans_name})")
-
-        # wp.geom().run()
-        return trans
+            return trans_name
 
     def wirebond(self, pos, ori, ymax, ymin, height="0.1mm", **kwargs):
         print("Wirebond should be drawn, not implemented yet")
@@ -581,27 +468,19 @@ class ComsolModeler:
         names = [entity.name for entity in entities]
 
         for name in names:
-            # If object in dictionnary and center of rotation is (0, 0) then
-            # just add the rotation to the initial object
-            if name in self.objects.keys() and center is None:
-                obj = self.objects[name]
-                obj.set("rot", angle)
-                print(f"{name} rotation (angle {angle})")
+            wp = self._find_workplane(name)
 
-            else:  # otherwise add a rotation comsol object
-                wp = self._find_workplane(name)
-
-                if name in self.deleted_entities:
-                    print(f"{name} not translated, must have been deleted by union")
-                else:
-                    rot_name = self._new_transform_name(name)
-                    rot = wp.geom().create(rot_name, "Rotate")
-                    rot.set("rot", angle)
-                    print(self._sympy_to_comsol_str(c[0]))
-                    rot.setIndex("pos", self._sympy_to_comsol_str(c[0])[0], 0)
-                    rot.setIndex("pos", self._sympy_to_comsol_str(c[1])[0], 1)
-                    rot.selection("input").set(self._penultimate_transform_name(name))
-                    print(f"{name} rotated ({rot_name})")
+            if name in self.deleted_entities:
+                print(f"{name} not translated, must have been deleted by union")
+            else:
+                rot_name = self._new_transform_name(name)
+                rot = wp.geom().create(rot_name, "Rotate")
+                rot.set("rot", angle)
+                print(self._sympy_to_comsol_str(c[0]))
+                rot.setIndex("pos", self._sympy_to_comsol_str(c[0])[0], 0)
+                rot.setIndex("pos", self._sympy_to_comsol_str(c[1])[0], 1)
+                rot.selection("input").set(self._penultimate_transform_name(name))
+                print(f"{name} rotated ({rot_name})")
 
     def translate(self, entities, vector):
 
@@ -765,7 +644,10 @@ class ComsolModeler:
             ids.append(ii)
             ii += 1
         """
-        pass
+        raise NotImplementedError("get_vertex_ids not implemented yet in Comsol mode")
+
+    def get_vertices(self, entity):
+        return []
 
     def assign_mesh_length(self, entities, length):
         pass
@@ -780,6 +662,8 @@ class ComsolModeler:
         """
 
         if layer == layer_ids.MESH or layer == layer_ids.PORT:
+            wp = self.mesh_port_wp
+        elif layer == layer_ids.MASK:
             wp = self.mesh_port_wp
         else:
             wp = self.main_wp

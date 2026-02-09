@@ -3,9 +3,8 @@ from inspect import currentframe, getfile
 
 import numpy as np
 import sympy
-from pint import UnitRegistry
 
-from ..utils import parse_entry, store_variable, val, variables
+from ..utils import parse_entry, store_variable, val
 from .entity import Entity
 
 sympy.init_printing(use_latex=False)
@@ -22,7 +21,7 @@ class Modeler:
 
     Inputs:
     -------
-    mode: string in "gds" or "hfss"
+    mode: string in "gds", "comsol" or "hfss"
     """
 
     is_overdev = False
@@ -58,6 +57,7 @@ class Modeler:
             self.interface = comsol_modeler.ComsolModeler(
                 number_of_cores=1, save_path=None, gui=False
             )
+            # TODO: self.interface.delete_all_objects()
         else:
             print("Mode should be either hfss, gds, or comsol")
 
@@ -107,6 +107,8 @@ class Modeler:
         file = os.path.join(folder, filename)
         if self.mode == "gds":
             self.interface.generate_gds(file, max_points)
+        else:
+            print("/!\ Warning: generate_gds is only available in gds mode")
 
     # def import_gds(self, folder, filename):
     #     file = os.path.join(folder, filename)

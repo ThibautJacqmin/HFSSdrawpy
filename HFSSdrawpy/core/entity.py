@@ -97,22 +97,27 @@ class Entity:
 
     def copy(self, new_name=None, new_layer=None):
         if new_layer is None:
-            new_layer = self.layer  # does not work in .gds yet
+            new_layer = self.layer
+            # does not work in .gds yet, neither in comsol
+        elif self.body.mode in ["gds", "comsol"]:
+            raise NotImplementedError("copying entities in GDS or COMSOL is not yet supported")
+
+        new_interface_name = self.body.interface.copy(self)
+
         copied = Entity(
             self.dimension,
             self.body,
             nonmodel=self.nonmodel,
             layer=new_layer,
             copy=self,
+            name=new_interface_name,
         )
-
-        new_interface_name = self.body.interface.copy(self)
-        self.body.interface.rename_entity(new_interface_name, copied.name)
 
         if new_name is not None:
             copied.rename(new_name)
-        if new_layer is not None:
+        if new_layer != self.layer:
             copied.relayer(new_layer)
+
         return copied
 
     def rename(self, new_name):
