@@ -437,7 +437,6 @@ class Body(Modeler):
         elif self.mode == "comsol":
             ori = port.ori
             pos = port.pos
-            print("\n\n\n\n\n", set(port.layers))
             path_entity = {
                 layer: self.polyline(points, closed=False, layer=layer, name=name).fillet(fillet)
                 for layer in set(port.layers)

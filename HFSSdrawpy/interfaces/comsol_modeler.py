@@ -53,8 +53,7 @@ class ComsolModeler:
                 ComsolModeler.client = mph.Client(
                     cores=number_of_cores, version=self.comsol_version, port=self.server_port
                 )
-            except BaseException as e:
-                print(e)
+            except BaseException:
                 raise RuntimeError(
                     r"could not connect to server: browse to "
                     r"C:\Program Files\COMSOL\COMSOL56\Multiphysics\COMSOL Launchers"
@@ -106,26 +105,17 @@ class ComsolModeler:
         import com  # # can be done once the JVM has been started by instantiating mph.Client...
 
         try:
-            self.main_comp = self.model.java.component().create("main_comp", True)
-        except com.comsol.util.exceptions.FlException as e:
-            print("Component main_comp already exists")
+            self.model.java.component().remove("main_comp")
+        except com.comsol.util.exceptions.FlException:
+            pass
+
+        self.model.java.component().create("main_comp", True)
+
         self.main_comp = self.model.java.component("main_comp")
 
-        try:
-            self.main_comp.geom().create("main_geom", 3)
-        except com.comsol.util.exceptions.FlException as e:
-            print("Geometry main_geom already exists")
-        self.main_geom = self.model.java.component("main_comp").geom("main_geom")
+        self.main_comp.geom().create("main_geom", 3)
+        self.main_geom = self.main_comp.geom("main_geom")
 
-        ## remove existing work_planes:
-        try:
-            self.main_geom.feature().remove("main_wp")
-        except com.comsol.util.exceptions.FlException as e:
-            print("No main_wp to remove")
-        try:
-            self.main_geom.feature().remove("mesh_port_wp")
-        except com.comsol.util.exceptions.FlException as e:
-            print("No mesh_port_wp to remove")
         # two workplanes are created : one for all physical components (main_wp)
         # and one for MESH and PORT layers
         self.main_wp = self.main_geom.create("main_wp", "WorkPlane")
@@ -385,7 +375,9 @@ class ComsolModeler:
         else:
             pol.set("type", "open")
 
-        for ii, point in enumerate(points):
+        from tqdm import tqdm
+
+        for ii, point in enumerate(tqdm(points)):
             # pol.setIndex("table", self._sympy_to_comsol_str(point[0]), ii, 0)
             # pol.setIndex("table", self._sympy_to_comsol_str(point[1]), ii, 1)
             import jpype
@@ -476,7 +468,6 @@ class ComsolModeler:
                 rot_name = self._new_transform_name(name)
                 rot = wp.geom().create(rot_name, "Rotate")
                 rot.set("rot", angle)
-                print(self._sympy_to_comsol_str(c[0]))
                 rot.setIndex("pos", self._sympy_to_comsol_str(c[0])[0], 0)
                 rot.setIndex("pos", self._sympy_to_comsol_str(c[1])[0], 1)
                 rot.selection("input").set(self._penultimate_transform_name(name))
@@ -489,8 +480,8 @@ class ComsolModeler:
         names = [entity.name for entity in entities]
 
         if vector[2] != 0:
-            raise Exception(
-                "Translations outside of main workplane not implemented yet in Comsol mode"
+            print(
+                "/!\\ WARNING: Translations outside of main workplane not implemented yet in Comsol mode, ignoring z component of the translation vector /!\\"
             )
 
         for name in names:
@@ -652,6 +643,43 @@ class ComsolModeler:
     def assign_mesh_length(self, entities, length):
         pass
 
+    def build(self):
+        self.model.build()
+
+    def add_mesh(self, name):
+        import com  # # can be done once the JVM has been started by instantiating mph.Client...
+
+        try:
+            self.main_comp.mesh().create(name)
+        except com.comsol.util.exceptions.FlException:
+            print(f"Mesh {name} already exists")
+
+    def add_physics(self, name, physics_type):
+        import com  # # can be done once the JVM has been started by instantiating mph.Client...
+
+        try:
+            self.main_comp.physics().create(name, physics_type, "main_geom")
+        except com.comsol.util.exceptions.FlException:
+            print(f"Physics {name} already exists")
+
+    def add_electrostatics_physics(self, name):
+        self.add_physics(name, "Electrostatics")
+
+    def add_electromagnetic_waves_physics(self, name):
+        self.add_physics(name, "ElectromagneticWaves")
+
+    #######################################
+    #  Materials
+    #######################################
+
+    def add_electric_material(
+        self, name, permeability="1", permittivity="1", conductivity="0", elements=[]
+    ):
+        material = self.main_comp.material().create(name)
+        material.propertyGroup("def").set("relpermeability", list(permeability))
+        material.propertyGroup("def").set("relpermittivity", list(permittivity))
+        material.propertyGroup("def").set("electricconductivity", conductivity)
+
     #######################################
     #   Utils
     #######################################
@@ -676,7 +704,10 @@ class ComsolModeler:
         """Input argument: Sympy expressions. Output argument: string corresponding
         to the input expression where the power ** has been replaced with ^"""
         strings = ["(" + str(sympy_expr) + ")" for sympy_expr in args]
-        return [s.replace("**", "^") for s in strings]
+        return [
+            s.replace("**", "^").replace("Abs", "abs").replace("Min", "min").replace("Max", "max")
+            for s in strings
+        ]
 
     @staticmethod
     def _make_3D(*args):

@@ -99,7 +99,7 @@ class Entity:
         if new_layer is None:
             new_layer = self.layer
             # does not work in .gds yet, neither in comsol
-        elif self.body.mode in ["gds", "comsol"]:
+        elif self.body.mode in ["comsol"]:
             raise NotImplementedError("copying entities in GDS or COMSOL is not yet supported")
 
         new_interface_name = self.body.interface.copy(self)
